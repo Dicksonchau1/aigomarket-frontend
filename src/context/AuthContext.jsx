@@ -15,12 +15,10 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ DEFINE FUNCTION BEFORE useEffect (using useCallback)
   const handleNewUserSignIn = useCallback(async (user) => {
     try {
       console.log('🔵 Handling user sign-in:', user.id);
       
-      // Check if user exists in database
       const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('id, membership_status, created_at')
@@ -29,7 +27,7 @@ export const AuthProvider = ({ children }) => {
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('❌ Database fetch error:', fetchError);
-        throw fetchError;
+        return; // Don't throw, just return
       }
 
       // NEW USER
@@ -49,13 +47,13 @@ export const AuthProvider = ({ children }) => {
 
         if (insertError) {
           console.error('❌ Insert error:', insertError);
-          throw insertError;
+          return;
         }
 
         toast.success('Welcome! Complete your setup.');
-        setTimeout(() => {
-          window.location.href = '/payment/founder';
-        }, 500);
+        // Use history navigation instead of hard redirect
+        window.history.pushState({}, '', '/payment/founder');
+        window.dispatchEvent(new PopStateEvent('popstate'));
         return;
       }
 
@@ -64,45 +62,55 @@ export const AuthProvider = ({ children }) => {
       
       if (existingUser.membership_status === 'pending') {
         toast('Please complete your payment', { icon: '💳' });
-        setTimeout(() => {
-          window.location.href = '/payment/founder';
-        }, 500);
+        window.history.pushState({}, '', '/payment/founder');
+        window.dispatchEvent(new PopStateEvent('popstate'));
         return;
       }
 
       if (existingUser.membership_status === 'active') {
         toast.success('Welcome back!');
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 500);
+        window.history.pushState({}, '', '/dashboard');
+        window.dispatchEvent(new PopStateEvent('popstate'));
         return;
       }
-
-      // Default
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 500);
 
     } catch (error) {
       console.error('❌ Error in handleNewUserSignIn:', error);
       toast.error('Authentication error. Please try again.');
     }
-  }, []); // Empty dependency array since it doesn't depend on state
+  }, []);
 
   useEffect(() => {
-    // Check active session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsAuthenticated(!!session);
-      setLoading(false);
-    });
+    let isMounted = true;
+
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (isMounted) {
+          setUser(session?.user ?? null);
+          setIsAuthenticated(!!session);
+          setLoading(false); // ✅ Always set loading to false
+        }
+      } catch (error) {
+        console.error('Auth init error:', error);
+        if (isMounted) {
+          setLoading(false); // ✅ Set loading false even on error
+        }
+      }
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth event:', event);
-        setUser(session?.user ?? null);
-        setIsAuthenticated(!!session);
+        
+        if (isMounted) {
+          setUser(session?.user ?? null);
+          setIsAuthenticated(!!session);
+        }
 
         // Handle new sign-ins
         if (event === 'SIGNED_IN' && session?.user) {
@@ -111,8 +119,11 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, [handleNewUserSignIn]); // ✅ Include in dependency array
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [handleNewUserSignIn]);
 
   const signUp = async (email, password, fullName = '') => {
     try {
@@ -184,7 +195,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Signed out successfully');
-      window.location.href = '/';
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
     } catch (error) {
       toast.error('Error signing out');
     }
