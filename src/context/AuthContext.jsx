@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [redirectPath, setRedirectPath] = useState(null);
 
   const handleNewUserSignIn = useCallback(async (user) => {
     try {
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('❌ Database fetch error:', fetchError);
-        return; // Don't throw, just return
+        return;
       }
 
       // NEW USER
@@ -51,9 +52,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         toast.success('Welcome! Complete your setup.');
-        // Use history navigation instead of hard redirect
-        window.history.pushState({}, '', '/payment/founder');
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        setRedirectPath('/payment/founder');
         return;
       }
 
@@ -62,17 +61,17 @@ export const AuthProvider = ({ children }) => {
       
       if (existingUser.membership_status === 'pending') {
         toast('Please complete your payment', { icon: '💳' });
-        window.history.pushState({}, '', '/payment/founder');
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        setRedirectPath('/payment/founder');
         return;
       }
 
       if (existingUser.membership_status === 'active') {
         toast.success('Welcome back!');
-        window.history.pushState({}, '', '/dashboard');
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        setRedirectPath('/dashboard');
         return;
       }
+
+      setRedirectPath('/dashboard');
 
     } catch (error) {
       console.error('❌ Error in handleNewUserSignIn:', error);
@@ -90,19 +89,18 @@ export const AuthProvider = ({ children }) => {
         if (isMounted) {
           setUser(session?.user ?? null);
           setIsAuthenticated(!!session);
-          setLoading(false); // ✅ Always set loading to false
+          setLoading(false);
         }
       } catch (error) {
         console.error('Auth init error:', error);
         if (isMounted) {
-          setLoading(false); // ✅ Set loading false even on error
+          setLoading(false);
         }
       }
     };
 
     initAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth event:', event);
@@ -112,7 +110,6 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(!!session);
         }
 
-        // Handle new sign-ins
         if (event === 'SIGNED_IN' && session?.user) {
           await handleNewUserSignIn(session.user);
         }
@@ -131,9 +128,7 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
         options: {
-          data: { 
-            full_name: fullName || email.split('@')[0]
-          },
+          data: { full_name: fullName || email.split('@')[0] },
         },
       });
       if (error) throw error;
@@ -147,12 +142,8 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      
       toast.success('Signing in...');
       return { success: true, data };
     } catch (error) {
@@ -165,9 +156,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { 
-          redirectTo: `${window.location.origin}/auth/callback` 
-        },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) throw error;
     } catch (error) {
@@ -179,9 +168,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
-        options: { 
-          redirectTo: `${window.location.origin}/auth/callback` 
-        },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) throw error;
     } catch (error) {
@@ -195,8 +182,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Signed out successfully');
-      window.history.pushState({}, '', '/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      setRedirectPath('/');
     } catch (error) {
       toast.error('Error signing out');
     }
@@ -206,6 +192,8 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     loading,
+    redirectPath,
+    clearRedirect: () => setRedirectPath(null),
     signUp,
     signIn,
     signInWithGoogle,
