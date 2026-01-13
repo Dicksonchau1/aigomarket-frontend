@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import rateLimit from 'axios-rate-limit';
-import { supabase } from './supabase';
+import { supabase } from '../lib/supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aigomarket-backend-production-8b8d.up.railway.app/api';
 
