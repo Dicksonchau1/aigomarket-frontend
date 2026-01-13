@@ -1,17 +1,22 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from 'react-error-boundary';
+
+// Context Providers
 import { AuthProvider } from './context/AuthContext';
 import { TokenProvider } from './context/TokenContext';
 import { PaymentProvider } from './context/PaymentContext';
+
+// Components
 import LoadingState from './components/LoadingState';
 import { PaymentErrorBoundary } from './components/PaymentErrorBoundary';
 import ProtectedRoutes from './components/ProtectedRoutes';
+import AuthModal from './components/AuthModal';
+import NavbarNew from './components/NavbarNew';
+
+// Pages
 import AuthCallback from './pages/AuthCallback';
-import Auth from './pages/Auth';
-
-
 const HomeNew = lazy(() => import('./pages/HomeNew'));
 const About = lazy(() => import('./pages/About'));
 const Docs = lazy(() => import('./pages/Docs'));
@@ -33,6 +38,7 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Support = lazy(() => import('./pages/Support'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+// Error Fallback UI
 function ErrorFallback({ error, resetErrorBoundary }) {
   return (
     <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
@@ -40,16 +46,10 @@ function ErrorFallback({ error, resetErrorBoundary }) {
         <h2 className="text-2xl font-bold text-white mb-2">Something went wrong</h2>
         <p className="text-slate-400 mb-6">{error?.message || 'An unexpected error occurred'}</p>
         <div className="flex gap-3">
-          <button
-            onClick={resetErrorBoundary}
-            className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition"
-          >
+          <button onClick={resetErrorBoundary} className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition">
             Try Again
           </button>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="flex-1 px-6 py-3 bg-cyan-500 text-white rounded-xl hover:bg-cyan-600 transition"
-          >
+          <button onClick={() => window.location.href = '/'} className="flex-1 px-6 py-3 bg-cyan-500 text-white rounded-xl hover:bg-cyan-600 transition">
             Go Home
           </button>
         </div>
@@ -58,22 +58,26 @@ function ErrorFallback({ error, resetErrorBoundary }) {
   );
 }
 
-function AppRoutes() {
+/**
+ * COMPONENT: AppRoutes
+ * Pass the handleOpenAuthModal function down to every page that needs it.
+ */
+function AppRoutes({ onOpenAuth }) {
   return (
     <Routes>
-      <Route path="/" element={<HomeNew />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/docs" element={<Docs />} />
-      <Route path="/benchmark" element={<Benchmark />} />
-      <Route path="/pricing" element={<Pricing />} />
-      <Route path="/marketplace" element={<Marketplace />} />
-      <Route path="/support" element={<Support />} />
+      {/* Public Pages - All receive onOpenAuthModal prop */}
+      <Route path="/" element={<HomeNew onOpenAuthModal={onOpenAuth} />} />
+      <Route path="/about" element={<About onOpenAuthModal={onOpenAuth} />} />
+      <Route path="/docs" element={<Docs onOpenAuthModal={onOpenAuth} />} />
+      <Route path="/benchmark" element={<Benchmark onOpenAuthModal={onOpenAuth} />} />
+      <Route path="/pricing" element={<Pricing onOpenAuthModal={onOpenAuth} />} />
+      <Route path="/marketplace" element={<Marketplace onOpenAuthModal={onOpenAuth} />} />
+      <Route path="/support" element={<Support onOpenAuthModal={onOpenAuth} />} />
 
-      <Route path="/login" element={<Auth />} />
-      <Route path="/signup" element={<Auth />} />
-      <Route path="/auth" element={<Auth />} />
+      {/* Auth callback for Social logins */}
       <Route path="/auth/callback" element={<AuthCallback />} />
       
+      {/* Payments */}
       <Route path="/founder" element={
         <PaymentErrorBoundary>
           <FounderPayment />
@@ -86,7 +90,8 @@ function AppRoutes() {
         </PaymentErrorBoundary>
       } />
       
-      <Route path="/dashboard/*" element={<ProtectedRoutes />}>
+      {/* Dashboard - Protected Layout with Sidebar */}
+      <Route path="/dashboard" element={<ProtectedRoutes />}>
         <Route index element={<Dashboard />} />
         <Route path="projects" element={<Projects />} />
         <Route path="projects/create" element={<CreateProject />} />
@@ -106,15 +111,37 @@ function AppRoutes() {
 }
 
 function App() {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('signin');
+
+  /**
+   * GLOBAL MODAL HANDLER
+   * This is the function that fixes the "o is not a function" error.
+   */
+  const handleOpenAuthModal = (mode = 'signin') => {
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.href = '/'}>
       <BrowserRouter>
         <AuthProvider>
           <TokenProvider>
             <PaymentProvider>
+              {/* Navbar - Fixed globally */}
+              <NavbarNew onOpenAuthModal={handleOpenAuthModal} />
+
               <Suspense fallback={<LoadingState message="Loading AIGO..." />}>
-                <AppRoutes />
+                <AppRoutes onOpenAuth={handleOpenAuthModal} />
               </Suspense>
+
+              {/* Global Auth Modal - Only one instance to prevent "Processing" hangs */}
+              <AuthModal 
+                isOpen={isAuthModalOpen} 
+                onClose={() => setIsAuthModalOpen(false)} 
+                initialMode={authMode} 
+              />
 
               <Toaster
                 position="top-right"
@@ -126,12 +153,6 @@ function App() {
                     border: '1px solid #1e293b',
                     borderRadius: '12px',
                     padding: '16px',
-                  },
-                  success: {
-                    iconTheme: { primary: '#10b981', secondary: '#fff' },
-                  },
-                  error: {
-                    iconTheme: { primary: '#ef4444', secondary: '#fff' },
                   },
                 }}
               />

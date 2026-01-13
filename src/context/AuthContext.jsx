@@ -31,19 +31,27 @@ export const AuthProvider = ({ children }) => {
     checkUser();
 
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session);
+      console.log('🔐 Auth state changed:', event, session?.user?.email);
       
       if (session?.user) {
         setUser(session.user);
         setSession(session);
         
-        await ensureUserProfile(session.user);
+        // ✅ FIX: Break the async deadlock with setTimeout
+        setTimeout(async () => {
+          try {
+            await ensureUserProfile(session.user);
+          } catch (error) {
+            console.error('❌ Profile creation error:', error);
+          } finally {
+            setLoading(false); // ✅ CRITICAL: Always set loading to false
+          }
+        }, 0);
       } else {
         setUser(null);
         setSession(null);
+        setLoading(false); // ✅ CRITICAL: Always set loading to false
       }
-      
-      setLoading(false);
     });
 
     return () => {
@@ -58,30 +66,49 @@ export const AuthProvider = ({ children }) => {
       
       if (user) {
         setUser(user);
-        await ensureUserProfile(user);
+        
+        // ✅ FIX: Break the async deadlock
+        setTimeout(async () => {
+          try {
+            await ensureUserProfile(user);
+          } catch (error) {
+            console.error('❌ Profile check error:', error);
+          } finally {
+            setLoading(false);
+          }
+        }, 0);
+      } else {
+        setLoading(false);
       }
     } catch (error) {
-      console.error('Error checking user:', error);
-    } finally {
-      setLoading(false);
+      console.error('❌ Error checking user:', error);
+      setLoading(false); // ✅ CRITICAL: Always set loading to false
     }
   };
 
   const ensureUserProfile = async (user) => {
     try {
-      await database.profile.get();
+      console.log('👤 Checking profile for:', user.email);
+      const profile = await database.profile.get();
+      console.log('✅ Profile exists:', profile);
     } catch (error) {
-      console.log('Creating user profile...');
-      await database.profile.update({
-        email: user.email,
-        display_name: user.user_metadata?.full_name || user.email?.split('@')[0],
-        created_at: new Date().toISOString()
-      });
+      console.log('📝 Creating user profile...');
+      try {
+        await database.profile.update({
+          email: user.email,
+          display_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+          created_at: new Date().toISOString()
+        });
+        console.log('✅ Profile created');
+      } catch (createError) {
+        console.error('❌ Profile creation failed:', createError);
+      }
     }
   };
 
   const signUp = async (email, password, fullName) => {
     try {
+      console.log('📝 Signing up:', email);
       const { data, error } = await signUpWithEmail(email, password, fullName);
       
       if (error) throw error;
@@ -90,7 +117,7 @@ export const AuthProvider = ({ children }) => {
       
       return { data, error: null };
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('❌ Sign up error:', error);
       toast.error(error.message || 'Failed to create account');
       return { data: null, error };
     }
@@ -98,6 +125,7 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async (email, password) => {
     try {
+      console.log('🔑 Signing in:', email);
       const { data, error } = await signInWithEmail(email, password);
       
       if (error) throw error;
@@ -109,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       
       return { data, error: null };
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in error:', error);
       toast.error(error.message || 'Failed to sign in');
       return { data: null, error };
     }
@@ -117,6 +145,7 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithProvider = async (provider) => {
     try {
+      console.log(`🔗 Signing in with ${provider}...`);
       let result;
       
       if (provider === 'google') {
@@ -131,7 +160,7 @@ export const AuthProvider = ({ children }) => {
 
       return { data, error: null };
     } catch (error) {
-      console.error(`${provider} sign in error:`, error);
+      console.error(`❌ ${provider} sign in error:`, error);
       toast.error(error.message || `Failed to sign in with ${provider}`);
       return { data: null, error };
     }
@@ -139,6 +168,7 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
+      console.log('👋 Signing out...');
       const { error } = await supabaseSignOut();
       
       if (error) throw error;
@@ -150,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       
       return { error: null };
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('❌ Sign out error:', error);
       toast.error(error.message || 'Failed to sign out');
       return { error };
     }
@@ -166,7 +196,7 @@ export const AuthProvider = ({ children }) => {
       
       return { data, error: null };
     } catch (error) {
-      console.error('Reset password error:', error);
+      console.error('❌ Reset password error:', error);
       toast.error(error.message || 'Failed to send reset email');
       return { data: null, error };
     }
