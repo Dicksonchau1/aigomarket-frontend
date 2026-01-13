@@ -9,6 +9,8 @@ import LoadingState from './components/LoadingState';
 import { PaymentErrorBoundary } from './components/PaymentErrorBoundary';
 import ProtectedRoutes from './components/ProtectedRoutes';
 import AuthCallback from './pages/AuthCallback';
+import Auth from './pages/Auth';
+
 
 const HomeNew = lazy(() => import('./pages/HomeNew'));
 const About = lazy(() => import('./pages/About'));
@@ -66,7 +68,10 @@ function AppRoutes() {
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/support" element={<Support />} />
-      
+
+      <Route path="/login" element={<Auth />} />
+      <Route path="/signup" element={<Auth />} />
+      <Route path="/auth" element={<Auth />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       
       <Route path="/founder" element={
