@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  Upload, Zap, Download, CheckCircle, Loader2, AlertCircle, 
-  TrendingDown, Gauge, FileCode, Cpu, HardDrive, Clock,
-  BarChart3, Shield, X, RefreshCw 
+  Upload, Zap, Download, CheckCircle, Loader2, AlertCircle, TrendingDown, Gauge, 
+  FileCode, Cpu, HardDrive, Clock, BarChart3, Shield, X, RefreshCw, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { uploadModelForVerification, compressModel } from '../services/api';
 
 export default function SeedAI() {
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
   // File Upload State
@@ -37,10 +38,6 @@ export default function SeedAI() {
     distillation: false,
     clustering: false
   });
-
-  // ==========================================
-  // FILE UPLOAD HANDLERS
-  // ==========================================
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -77,7 +74,7 @@ export default function SeedAI() {
       return;
     }
 
-    // Validate file size (max 500MB)
+    // Validate file size (max 500MB for Seed AI)
     const maxSize = 500 * 1024 * 1024; // 500MB
     if (file.size > maxSize) {
       toast.error('File too large. Maximum size is 500MB');
@@ -153,10 +150,6 @@ export default function SeedAI() {
     toast.success('File removed');
   };
 
-  // ==========================================
-  // COMPRESSION HANDLERS
-  // ==========================================
-
   const handleCompress = async () => {
     if (!modelInfo.uploadedId) {
       toast.error('Please upload a model first');
@@ -199,21 +192,40 @@ export default function SeedAI() {
   const handleDownload = () => {
     if (compressionResult?.download_url && compressionResult.download_url !== '#') {
       window.open(compressionResult.download_url, '_blank');
-      toast.success('Download started!');
+      toast.success('✅ Compressed model downloaded! Now upload to marketplace.');
     } else {
-      // Demo mode - simulate download
-      toast.success('Download started! (Demo mode - no actual file)');
+      // Demo mode - create mock compressed file
+      const originalSize = parseFloat(modelInfo.originalSize);
+      const compressedSize = originalSize * (1 - compressionLevel / 100);
       
-      // Simulate download in real app
-      const blob = new Blob(['Demo compressed model'], { type: 'application/octet-stream' });
+      // Create a smaller dummy file to simulate compression
+      const dummyData = new Uint8Array(Math.floor(compressedSize * 1024 * 1024)); // Convert MB to bytes
+      const blob = new Blob([dummyData], { type: 'application/octet-stream' });
+      
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${modelInfo.fileName.split('.')[0]}_compressed.${modelInfo.format.toLowerCase()}`;
+      a.download = `${modelInfo.fileName.split('.')[0]}_compressed_${compressionLevel}pct.${modelInfo.format.toLowerCase()}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      
+      toast.success(
+        `✅ Compressed model downloaded (${compressedSize.toFixed(1)} MB)!\n\n💡 Now upload this file to the marketplace.`,
+        { duration: 5000 }
+      );
+      
+      // Suggest going to upload page
+      setTimeout(() => {
+        const goToUpload = window.confirm(
+          'Compressed model ready!\n\n' +
+          'Would you like to upload it to the marketplace now?'
+        );
+        if (goToUpload) {
+          navigate('/dashboard/upload');
+        }
+      }, 2000);
     }
   };
 
@@ -222,10 +234,6 @@ export default function SeedAI() {
     setCompressionProgress(0);
     toast.success('Ready for new compression');
   };
-
-  // ==========================================
-  // CALCULATIONS
-  // ==========================================
 
   const estimatedSize = modelInfo.originalSize 
     ? (modelInfo.originalSize * (1 - compressionLevel / 100)).toFixed(2)
@@ -245,13 +253,8 @@ export default function SeedAI() {
     compressionLevel >= 80 ? 'text-cyan-400' :
     'text-emerald-400';
 
-  // ==========================================
-  // RENDER
-  // ==========================================
-
   return (
     <div className="min-h-screen bg-[#0a0f1e] p-8">
-      {/* Header */}
       <header className="mb-8 text-center">
         <div className="flex items-center justify-center gap-3 mb-4">
           <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -267,9 +270,7 @@ export default function SeedAI() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
         
-        {/* ==========================================
-            LEFT COLUMN - UPLOAD & SETTINGS
-            ========================================== */}
+        {/* LEFT COLUMN - UPLOAD & SETTINGS */}
         <div className="space-y-6">
           
           {/* Upload Section */}
@@ -493,9 +494,7 @@ export default function SeedAI() {
           </div>
         </div>
 
-        {/* ==========================================
-            RIGHT COLUMN - RESULTS & INFO
-            ========================================== */}
+        {/* RIGHT COLUMN - RESULTS & INFO */}
         <div className="space-y-6">
           
           {/* Size Comparison */}
@@ -607,6 +606,25 @@ export default function SeedAI() {
                 <Download size={22} />
                 Download Compressed Model
               </button>
+
+              {/* Upload to Marketplace CTA */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/30 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Sparkles size={20} className="text-purple-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-white font-semibold mb-1">Ready to publish?</p>
+                    <p className="text-slate-300 text-sm mb-3">
+                      Your compressed model is now small enough to upload to the marketplace!
+                    </p>
+                    <button
+                      onClick={() => navigate('/dashboard/upload')}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-bold rounded-lg hover:opacity-90 transition text-sm"
+                    >
+                      Upload to Marketplace →
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

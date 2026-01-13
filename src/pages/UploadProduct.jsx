@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Upload, 
   FileCode, 
@@ -17,12 +18,13 @@ import {
   FileText,
   Zap,
   Shield,
-  Globe
+  Globe,
+  Sparkles,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { uploadDataset, uploadModelForVerification } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 export default function UploadProduct() {
   const { user } = useAuth();
@@ -53,24 +55,23 @@ export default function UploadProduct() {
   });
 
   const [tagInput, setTagInput] = useState('');
-  const [previewData, setPreviewData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
 
   const acceptedFileTypes = {
     model: {
       extensions: ['.pt', '.pth', '.onnx', '.tflite', '.h5', '.pb', '.mlmodel', '.keras'],
       mimeTypes: ['application/octet-stream', 'application/x-hdf', 'model/*'],
-      maxSize: 500 * 1024 * 1024
+      maxSize: 50 * 1024 * 1024 // 50 MB (FREE TIER LIMIT)
     },
     dataset: {
       extensions: ['.csv', '.json', '.parquet', '.zip', '.tar.gz', '.pkl', '.npz'],
       mimeTypes: ['text/csv', 'application/json', 'application/zip', 'application/x-tar'],
-      maxSize: 2 * 1024 * 1024 * 1024
+      maxSize: 50 * 1024 * 1024 // 50 MB
     },
     algorithm: {
       extensions: ['.py', '.ipynb', '.js', '.ts', '.zip'],
       mimeTypes: ['text/x-python', 'application/x-ipynb+json', 'text/javascript', 'application/zip'],
-      maxSize: 100 * 1024 * 1024
+      maxSize: 50 * 1024 * 1024 // 50 MB
     }
   };
 
@@ -255,7 +256,7 @@ export default function UploadProduct() {
 
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Upload failed. Please try again.');
+      toast.error(error.message || 'Upload failed. Please try again.');
       setFiles(prev => prev.map(f => ({ ...f, uploadStatus: 'error' })));
     } finally {
       setIsUploading(false);
@@ -297,6 +298,10 @@ export default function UploadProduct() {
   };
 
   const selectedCategory = categories[uploadType]?.find(cat => cat.value === productDetails.category);
+
+  // Check if any file is too large
+  const hasOversizedFile = files.some(f => f.file.size > acceptedFileTypes[uploadType].maxSize);
+  const oversizedFile = files.find(f => f.file.size > acceptedFileTypes[uploadType].maxSize);
 
   return (
     <div className="min-h-screen bg-[#0a0f1e] p-8">
@@ -463,6 +468,49 @@ export default function UploadProduct() {
                   ))}
                 </div>
               )}
+
+              {/* FILE TOO LARGE WARNING */}
+              {hasOversizedFile && oversizedFile && (
+                <div className="mt-6 p-5 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-2xl">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/20 flex-shrink-0">
+                      <AlertCircle size={24} className="text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-bold mb-2">⚠️ File Too Large - Compression Required</h3>
+                      <p className="text-slate-300 text-sm mb-1">
+                        <strong>{oversizedFile.metadata.name}</strong> is {oversizedFile.metadata.sizeFormatted}.
+                      </p>
+                      <p className="text-slate-300 text-sm mb-4">
+                        Free tier supports files up to <strong>50 MB</strong>. Use Seed AI to compress your model by up to 95% first.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            // Save current form data to localStorage
+                            localStorage.setItem('uploadDraft', JSON.stringify({
+                              ...productDetails,
+                              fileName: oversizedFile.metadata.name
+                            }));
+                            navigate('/dashboard/seed-ai');
+                          }}
+                          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-bold rounded-xl hover:opacity-90 transition"
+                        >
+                          <Sparkles size={18} />
+                          Compress with Seed AI
+                        </button>
+                        <button
+                          onClick={() => removeFile(oversizedFile.id)}
+                          className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition"
+                        >
+                          <X size={18} />
+                          Remove File
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
@@ -471,6 +519,7 @@ export default function UploadProduct() {
                 <div>
                   <h3 className="font-bold text-white mb-2">Upload Guidelines</h3>
                   <ul className="text-sm text-slate-400 space-y-1">
+                    <li>• <strong className="text-white">50 MB limit</strong> on free tier - Use Seed AI to compress larger models</li>
                     <li>• Ensure your files are properly formatted and tested</li>
                     <li>• Include documentation and usage examples</li>
                     <li>• All uploads are scanned for security</li>
@@ -483,8 +532,8 @@ export default function UploadProduct() {
             <div className="flex justify-end">
               <button
                 onClick={goToNextStep}
-                disabled={files.length === 0}
-                className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                disabled={files.length === 0 || hasOversizedFile}
+                className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue to Details →
               </button>

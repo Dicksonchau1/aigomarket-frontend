@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import rateLimit from 'axios-rate-limit';
+import { supabase } from './supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aigomarket-backend-production-8b8d.up.railway.app/api';
 
@@ -124,7 +125,7 @@ const apiRequest = async (method, url, data = null, config = {}) => {
   }
 };
 
-// API Methods
+// API Methods (Railway Backend)
 const api_methods = {
   // Payment Processing
   purchaseFounderPackage: async (signal) => {
@@ -164,19 +165,6 @@ const api_methods = {
 
   deleteProject: async (projectId) => {
     return apiRequest('DELETE', `/projects/${projectId}`);
-  },
-
-  // File Uploads with progress tracking
-  uploadDataset: async (formData, onProgress) => {
-    return apiRequest('POST', '/datasets/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        onProgress?.(percentCompleted);
-      }
-    });
   }
 };
 
@@ -203,6 +191,216 @@ const paymentAPI = {
   },
 };
 
-// Single export statement
+// ============================================
+// SUPABASE UPLOAD FUNCTIONS (Direct - No Railway)
+// ============================================
+
+/**
+ * Upload Model for Verification - Direct Supabase
+ */
+export async function uploadModelForVerification(formData) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const metadataString = formData.get('metadata');
+    const metadata = metadataString ? JSON.parse(metadataString) : {};
+    const file = formData.get('model');
+
+    if (!file) throw new Error('No model file provided');
+
+    console.log('Uploading model:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+
+    // Upload to Supabase Storage
+    const fileName = `${user.id}/${Date.now()}_${file.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('models')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('models')
+      .getPublicUrl(fileName);
+
+    console.log('File uploaded successfully, creating database record...');
+
+    // Create database record
+    const { data: modelRecord, error: dbError } = await supabase
+      .from('models')
+      .insert([
+        {
+          user_id: user.id,
+          name: metadata.name || file.name,
+          description: metadata.description || '',
+          category: metadata.category || 'other',
+          subcategory: metadata.subcategory,
+          price: metadata.price || 0,
+          license: metadata.license || 'MIT',
+          tags: metadata.tags || [],
+          version: metadata.version || '1.0.0',
+          framework: metadata.framework,
+          model_type: metadata.modelType,
+          accuracy: metadata.accuracy,
+          file_url: publicUrl,
+          file_size: file.size,
+          file_name: file.name,
+          status: 'pending_verification',
+          downloads: 0,
+          rating: 0,
+          metadata: metadata
+        }
+      ])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Database insert error:', dbError);
+      throw new Error(`Database error: ${dbError.message}`);
+    }
+
+    console.log('Model uploaded successfully:', modelRecord.id);
+
+    return {
+      success: true,
+      id: modelRecord.id,
+      model: modelRecord,
+      message: 'Model uploaded successfully'
+    };
+
+  } catch (error) {
+    console.error('Upload model error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Upload Dataset - Direct Supabase
+ */
+export async function uploadDataset(formData) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const metadataString = formData.get('metadata');
+    const metadata = metadataString ? JSON.parse(metadataString) : {};
+    const file = formData.get('dataset') || formData.get('algorithm');
+
+    if (!file) throw new Error('No file provided');
+
+    console.log('Uploading file:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+
+    // Determine bucket and table
+    const isDataset = formData.get('dataset');
+    const bucket = isDataset ? 'datasets' : 'algorithms';
+    const tableName = isDataset ? 'datasets' : 'algorithms';
+
+    // Upload to Supabase Storage
+    const fileName = `${user.id}/${Date.now()}_${file.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+
+    console.log('File uploaded successfully, creating database record...');
+
+    // Create database record
+    const { data: record, error: dbError } = await supabase
+      .from(tableName)
+      .insert([
+        {
+          user_id: user.id,
+          name: metadata.name || file.name,
+          description: metadata.description || '',
+          category: metadata.category || 'other',
+          subcategory: metadata.subcategory,
+          price: metadata.price || 0,
+          license: metadata.license || 'MIT',
+          tags: metadata.tags || [],
+          file_url: publicUrl,
+          file_size: file.size,
+          file_name: file.name,
+          status: 'active',
+          downloads: 0,
+          rating: 0,
+          metadata: metadata
+        }
+      ])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Database insert error:', dbError);
+      throw new Error(`Database error: ${dbError.message}`);
+    }
+
+    console.log('Upload successful:', record.id);
+
+    return {
+      success: true,
+      id: record.id,
+      data: record,
+      message: 'Upload successful'
+    };
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Compress Model - Mock for now (will be replaced with actual service)
+ */
+export async function compressModel(modelId, compressionLevel) {
+  try {
+    console.log('Compressing model:', modelId, 'Level:', compressionLevel);
+    
+    // Simulate compression delay
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Mock response
+    const result = {
+      success: true,
+      original_size: '45.2 MB',
+      compressed_size: `${(45.2 * (1 - compressionLevel / 100)).toFixed(1)} MB`,
+      reduction: `${compressionLevel}%`,
+      accuracy_loss: '< 0.5%',
+      compression_time: '3.2s',
+      original_accuracy: '94.8',
+      compressed_accuracy: '94.3',
+      techniques: ['Quantization', 'Pruning', 'Knowledge Distillation'].slice(0, Math.ceil(compressionLevel / 30)),
+      download_url: '#' // Mock URL
+    };
+
+    console.log('Compression result:', result);
+    return result;
+
+  } catch (error) {
+    console.error('Compression error:', error);
+    throw error;
+  }
+}
+
+// Export everything
 export { api_methods, paymentAPI };
 export default api;
