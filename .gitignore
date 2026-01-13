@@ -153,3 +153,5 @@ storybook-static/
 !.env.example
 !.vscode/extensions.json
 !.vscode/settings.json
+# Local Netlify folder
+.netlify

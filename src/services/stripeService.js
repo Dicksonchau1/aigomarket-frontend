@@ -1,112 +1,59 @@
-import axios from 'axios';
+// src/services/stripeService.js
 
-const API_URL = 'https://aigomarket-backend-production-8b8d.up.railway.app/api';
+import api from './api';
+import { supabase } from '../lib/supabase';
 
-// Helper to get Supabase auth token
-const getAuthToken = () => {
-  try {
-    const authData = localStorage.getItem('sb-cwhthtgynavwinpbjplt-auth-token');
-    if (authData) {
-      const parsed = JSON.parse(authData);
-      return parsed?.access_token || null;
-    }
-  } catch (error) {
-    console.error('Error parsing auth token:', error);
-  }
-  return null;
-};
-
-// Purchase Founder Package ($29.90)
-export const purchaseFounderPackage = async () => {
-  try {
-    const token = getAuthToken();
-    
-    const response = await axios.post(
-      `${API_URL}/payments/checkout`,
-      { 
-        amount: 1000,
-        price: 29.90,
-        package: 'founder'
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` }
+class StripeService {
+  static async createFounderCheckout() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        throw new Error('Authentication required');
       }
-    );
-    
-    if (response.data.checkout_url) {
-      window.location.href = response.data.checkout_url;
+
+      const response = await api.post('/payments/founder-checkout', {
+        package: 'founder',
+        amount: 2990, // $29.90
+        included_tokens: 1000
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Founder checkout error:', error);
+      throw error;
     }
-    return response.data;
-  } catch (error) {
-    console.error('Founder package payment error:', error);
-    throw error;
   }
-};
 
-// Purchase Regular Tokens ($9.90)
-export const purchaseTokens = async (amount = 1000) => {
-  try {
-    const token = getAuthToken();
-    
-    const response = await axios.post(
-      `${API_URL}/payments/checkout`,
-      { 
-        amount,
-        price: 9.90 
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );
-    
-    if (response.data.checkout_url) {
-      window.location.href = response.data.checkout_url;
+  static async verifyFounderPayment(sessionId) {
+    try {
+      const response = await api.get(`/payments/verify/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      throw error;
     }
-    return response.data;
-  } catch (error) {
-    console.error('Payment error:', error);
-    throw error;
   }
-};
 
-// Get Payment History
-export const getPaymentHistory = async () => {
-  try {
-    const token = getAuthToken();
-    const response = await axios.get(`${API_URL}/payments/history`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching payment history:', error);
-    return [];
+  static async purchaseTokens(amount = 1000) {
+    try {
+      const response = await api.post('/payments/tokens', { amount });
+      return response.data;
+    } catch (error) {
+      console.error('Token purchase error:', error);
+      throw error;
+    }
   }
-};
 
-// Get Token Balance
-export const getTokenBalance = async () => {
-  try {
-    const token = getAuthToken();
-    const response = await axios.get(`${API_URL}/users/tokens`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    return response.data.balance;
-  } catch (error) {
-    console.error('Error fetching token balance:', error);
-    return 0;
+  static async getPaymentHistory() {
+    try {
+      const response = await api.get('/payments/history');
+      return response.data;
+    } catch (error) {
+      console.error('Payment history error:', error);
+      return [];
+    }
   }
-};
+}
 
-// Verify Payment Status
-export const verifyPayment = async (sessionId) => {
-  try {
-    const token = getAuthToken();
-    const response = await axios.get(`${API_URL}/payments/verify/${sessionId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error verifying payment:', error);
-    throw error;
-  }
-};
+export default StripeService;

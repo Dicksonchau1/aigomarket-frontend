@@ -1,205 +1,191 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  signUpWithEmail, 
+  signInWithEmail, 
+  signInWithGoogle, 
+  signInWithGithub, 
+  signOut as supabaseSignOut,
+  getCurrentUser,
+  onAuthStateChange,
+  resetPassword as supabaseResetPassword
+} from '../services/supabaseAuth';
+import { database } from '../services/database';
 import toast from 'react-hot-toast';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext({});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [redirectPath, setRedirectPath] = useState(null);
-
-  const handleNewUserSignIn = useCallback(async (user) => {
-    try {
-      console.log('🔵 Handling user sign-in:', user.id);
-      
-      const { data: existingUser, error: fetchError } = await supabase
-        .from('users')
-        .select('id, membership_status, created_at')
-        .eq('id', user.id)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('❌ Database fetch error:', fetchError);
-        return;
-      }
-
-      // NEW USER
-      if (!existingUser) {
-        console.log('🟢 New user - creating profile...');
-        
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([{
-            id: user.id,
-            email: user.email,
-            username: user.email.split('@')[0],
-            membership_status: 'pending',
-            tokens: 0,
-            created_at: new Date().toISOString()
-          }]);
-
-        if (insertError) {
-          console.error('❌ Insert error:', insertError);
-          return;
-        }
-
-        toast.success('Welcome! Complete your setup.');
-        setRedirectPath('/payment/founder');
-        return;
-      }
-
-      // EXISTING USER
-      console.log('🔵 Existing user, status:', existingUser.membership_status);
-      
-      if (existingUser.membership_status === 'pending') {
-        toast('Please complete your payment', { icon: '💳' });
-        setRedirectPath('/payment/founder');
-        return;
-      }
-
-      if (existingUser.membership_status === 'active') {
-        toast.success('Welcome back!');
-        setRedirectPath('/dashboard');
-        return;
-      }
-
-      setRedirectPath('/dashboard');
-
-    } catch (error) {
-      console.error('❌ Error in handleNewUserSignIn:', error);
-      toast.error('Authentication error. Please try again.');
-    }
-  }, []);
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
+    checkUser();
 
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session);
+      
+      if (session?.user) {
+        setUser(session.user);
+        setSession(session);
         
-        if (isMounted) {
-          setUser(session?.user ?? null);
-          setIsAuthenticated(!!session);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Auth init error:', error);
-        if (isMounted) {
-          setLoading(false);
-        }
+        await ensureUserProfile(session.user);
+      } else {
+        setUser(null);
+        setSession(null);
       }
-    };
-
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth event:', event);
-        
-        if (isMounted) {
-          setUser(session?.user ?? null);
-          setIsAuthenticated(!!session);
-        }
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          await handleNewUserSignIn(session.user);
-        }
-      }
-    );
+      
+      setLoading(false);
+    });
 
     return () => {
-      isMounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, [handleNewUserSignIn]);
+  }, []);
 
-  const signUp = async (email, password, fullName = '') => {
+  const checkUser = async () => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName || email.split('@')[0] },
-        },
-      });
+      const { user, error } = await getCurrentUser();
       if (error) throw error;
-      toast.success('Account created! Check your email to verify.');
-      return { success: true, data };
+      
+      if (user) {
+        setUser(user);
+        await ensureUserProfile(user);
+      }
     } catch (error) {
-      toast.error(error.message);
-      return { success: false, error: error.message };
+      console.error('Error checking user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const ensureUserProfile = async (user) => {
+    try {
+      await database.profile.get();
+    } catch (error) {
+      console.log('Creating user profile...');
+      await database.profile.update({
+        email: user.email,
+        display_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+        created_at: new Date().toISOString()
+      });
+    }
+  };
+
+  const signUp = async (email, password, fullName) => {
+    try {
+      const { data, error } = await signUpWithEmail(email, password, fullName);
+      
+      if (error) throw error;
+
+      toast.success('Account created! Please check your email to verify.');
+      
+      return { data, error: null };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toast.error(error.message || 'Failed to create account');
+      return { data: null, error };
     }
   };
 
   const signIn = async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await signInWithEmail(email, password);
+      
       if (error) throw error;
-      toast.success('Signing in...');
-      return { success: true, data };
+
+      setUser(data.user);
+      setSession(data.session);
+      
+      toast.success('Welcome back!');
+      
+      return { data, error: null };
     } catch (error) {
-      toast.error(error.message);
-      return { success: false, error: error.message };
+      console.error('Sign in error:', error);
+      toast.error(error.message || 'Failed to sign in');
+      return { data: null, error };
     }
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithProvider = async (provider) => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
+      let result;
+      
+      if (provider === 'google') {
+        result = await signInWithGoogle();
+      } else if (provider === 'github') {
+        result = await signInWithGithub();
+      }
+      
+      const { data, error } = result;
+      
       if (error) throw error;
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
 
-  const signInWithGithub = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (error) throw error;
+      return { data, error: null };
     } catch (error) {
-      toast.error(error.message);
+      console.error(`${provider} sign in error:`, error);
+      toast.error(error.message || `Failed to sign in with ${provider}`);
+      return { data: null, error };
     }
   };
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabaseSignOut();
+      
+      if (error) throw error;
+
       setUser(null);
-      setIsAuthenticated(false);
+      setSession(null);
+      
       toast.success('Signed out successfully');
-      setRedirectPath('/');
+      
+      return { error: null };
     } catch (error) {
-      toast.error('Error signing out');
+      console.error('Sign out error:', error);
+      toast.error(error.message || 'Failed to sign out');
+      return { error };
+    }
+  };
+
+  const resetPassword = async (email) => {
+    try {
+      const { data, error } = await supabaseResetPassword(email);
+      
+      if (error) throw error;
+
+      toast.success('Password reset email sent! Check your inbox.');
+      
+      return { data, error: null };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      toast.error(error.message || 'Failed to send reset email');
+      return { data: null, error };
     }
   };
 
   const value = {
     user,
-    isAuthenticated,
+    session,
     loading,
-    redirectPath,
-    clearRedirect: () => setRedirectPath(null),
     signUp,
     signIn,
-    signInWithGoogle,
-    signInWithGithub,
+    signInWithProvider,
     signOut,
+    resetPassword,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

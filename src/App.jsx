@@ -1,120 +1,140 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-
-// Components
-import LoadingSpinner from './components/LoadingSpinner';
-import ErrorBoundary from './components/ErrorBoundary';
-import ProtectedRoute from './components/ProtectedRoute';
-
-// Eager loaded
-import HomeNew from './pages/HomeNew';
+import { ErrorBoundary } from 'react-error-boundary';
+import { AuthProvider } from './context/AuthContext';
+import { TokenProvider } from './context/TokenContext';
+import { PaymentProvider } from './context/PaymentContext';
+import LoadingState from './components/LoadingState';
+import { PaymentErrorBoundary } from './components/PaymentErrorBoundary';
+import ProtectedRoutes from './components/ProtectedRoutes';
 import AuthCallback from './pages/AuthCallback';
 
-// Lazy loaded
+const HomeNew = lazy(() => import('./pages/HomeNew'));
+const About = lazy(() => import('./pages/About'));
 const Docs = lazy(() => import('./pages/Docs'));
-const FounderPayment = lazy(() => import('./pages/Payment/Founder'));
-const DashboardLayout = lazy(() => import('./pages/DashboardLayout'));
+const Benchmark = lazy(() => import('./pages/Benchmark'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const FounderPayment = lazy(() => import('./pages/FounderPayment'));
+const PaymentStatusPage = lazy(() => import('./pages/PaymentStatusPage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Projects = lazy(() => import('./pages/Projects'));
+const CreateProject = lazy(() => import('./pages/CreateProject'));
+const EditProject = lazy(() => import('./pages/EditProject'));
+const Datasets = lazy(() => import('./pages/Datasets'));
+const Models = lazy(() => import('./pages/Models'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
-const Architect = lazy(() => import('./pages/Architect'));
-const AIVerificationGuard = lazy(() => import('./pages/AIVerificationGuard'));
-const Wallet = lazy(() => import('./pages/Wallet'));
 const Settings = lazy(() => import('./pages/Settings'));
-const Domains = lazy(() => import('./pages/Domains'));
-const OneClick = lazy(() => import('./pages/OneClick'));
-const SeedAI = lazy(() => import('./pages/SeedAI'));
-const UploadProduct = lazy(() => import('./pages/UploadProduct'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Wallet = lazy(() => import('./pages/Wallet'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Support = lazy(() => import('./pages/Support'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-    <div className="text-center">
-      <LoadingSpinner size="lg" />
-      <p className="mt-4 text-gray-600 font-medium">Loading...</p>
+function ErrorFallback({ error, resetErrorBoundary }) {
+  return (
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-[#0f172a] border-2 border-red-500/20 rounded-2xl p-8 text-center">
+        <h2 className="text-2xl font-bold text-white mb-2">Something went wrong</h2>
+        <p className="text-slate-400 mb-6">{error?.message || 'An unexpected error occurred'}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={resetErrorBoundary}
+            className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="flex-1 px-6 py-3 bg-cyan-500 text-white rounded-xl hover:bg-cyan-600 transition"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
 function AppRoutes() {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return <PageLoader />;
-  }
-
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/" element={<HomeNew />} />
-        <Route path="/docs" element={<Docs />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/payment/founder" element={<FounderPayment />} />
+    <Routes>
+      <Route path="/" element={<HomeNew />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/docs" element={<Docs />} />
+      <Route path="/benchmark" element={<Benchmark />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/marketplace" element={<Marketplace />} />
+      <Route path="/support" element={<Support />} />
+      
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      
+      <Route path="/founder" element={
+        <PaymentErrorBoundary>
+          <FounderPayment />
+        </PaymentErrorBoundary>
+      } />
+      
+      <Route path="/payment/status" element={
+        <PaymentErrorBoundary>
+          <PaymentStatusPage />
+        </PaymentErrorBoundary>
+      } />
+      
+      <Route path="/dashboard/*" element={<ProtectedRoutes />}>
+        <Route index element={<Dashboard />} />
+        <Route path="projects" element={<Projects />} />
+        <Route path="projects/create" element={<CreateProject />} />
+        <Route path="projects/edit/:id" element={<EditProject />} />
+        <Route path="datasets" element={<Datasets />} />
+        <Route path="models" element={<Models />} />
+        <Route path="wallet" element={<Wallet />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<Profile />} />
+      </Route>
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="marketplace" element={<Marketplace />} />
-          <Route path="architect" element={<Architect />} />
-          <Route path="verification-guard" element={<AIVerificationGuard />} />
-          <Route path="seed-ai" element={<SeedAI />} />
-          <Route path="domains" element={<Domains />} />
-          <Route path="one-click" element={<OneClick />} />
-          <Route path="wallet" element={<Wallet />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="upload" element={<UploadProduct />} />
-        </Route>
-
-        <Route
-          path="/404"
-          element={
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <h1 className="text-6xl font-bold text-gray-800 mb-4">404</h1>
-                <p className="text-xl text-gray-600 mb-8">Page not found</p>
-                <a href="/" className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  Go Home
-                </a>
-              </div>
-            </div>
-          }
-        />
-        <Route path="*" element={<Navigate to="/404" replace />} />
-      </Routes>
-    </Suspense>
+      <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
+    </Routes>
   );
 }
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ErrorBoundary>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: { background: '#363636', color: '#fff' },
-              success: {
-                duration: 3000,
-                iconTheme: { primary: '#10b981', secondary: '#fff' },
-              },
-              error: {
-                duration: 4000,
-                iconTheme: { primary: '#ef4444', secondary: '#fff' },
-              },
-            }}
-          />
-          <AppRoutes />
-        </ErrorBoundary>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.href = '/'}>
+      <BrowserRouter>
+        <AuthProvider>
+          <TokenProvider>
+            <PaymentProvider>
+              <Suspense fallback={<LoadingState message="Loading AIGO..." />}>
+                <AppRoutes />
+              </Suspense>
+
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#0f172a',
+                    color: '#fff',
+                    border: '1px solid #1e293b',
+                    borderRadius: '12px',
+                    padding: '16px',
+                  },
+                  success: {
+                    iconTheme: { primary: '#10b981', secondary: '#fff' },
+                  },
+                  error: {
+                    iconTheme: { primary: '#ef4444', secondary: '#fff' },
+                  },
+                }}
+              />
+            </PaymentProvider>
+          </TokenProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

@@ -1,254 +1,499 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Key, Shield, Bell, Trash2, Copy, RefreshCw, Check } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import toast from 'react-hot-toast';
-import {
-  getUserSettings,
-  updateUserSettings,
-  getApiKey,
-  generateNewApiKey,
-  revokeApiKey,
-} from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Bell, 
+  Lock, 
+  Shield, 
+  Mail, 
+  Trash2, 
+  AlertCircle,
+  Save,
+  Eye,
+  EyeOff
+} from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { database } from '../services/database';
 
-export default function Settings() {
-  const { user } = useAuth();
+function Settings() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('notifications');
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [settings, setSettings] = useState({
-    email: '',
-    notifications: true,
-    twoFactorAuth: false,
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Notification Settings
+  const [notifications, setNotifications] = useState({
+    emailNotifications: true,
+    projectUpdates: true,
+    modelAlerts: true,
+    marketingEmails: false
+  });
+
+  // Security Settings
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Privacy Settings
+  const [privacy, setPrivacy] = useState({
+    profileVisibility: 'public',
+    showEmail: false,
+    showProjects: true
   });
 
   useEffect(() => {
     loadSettings();
-    loadApiKey();
   }, []);
 
   const loadSettings = async () => {
     try {
-      const data = await getUserSettings();
-      setSettings({
-        email: data.email || user?.email || '',
-        notifications: data.notifications ?? true,
-        twoFactorAuth: data.twoFactorAuth ?? false,
+      const profile = await database.profile.get();
+      if (profile.settings) {
+        setNotifications(profile.settings.notifications || notifications);
+        setPrivacy(profile.settings.privacy || privacy);
+      }
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+    }
+  };
+
+  const handleNotificationChange = (key) => {
+    setNotifications({
+      ...notifications,
+      [key]: !notifications[key]
+    });
+  };
+
+  const handlePrivacyChange = (key, value) => {
+    setPrivacy({
+      ...privacy,
+      [key]: value
+    });
+  };
+
+  const saveNotificationSettings = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+
+      const profile = await database.profile.get();
+      await database.profile.update({
+        ...profile,
+        settings: {
+          ...profile.settings,
+          notifications
+        }
       });
-    } catch (error) {
-      console.error('Failed to load settings:', error);
+
+      setSuccess('Notification settings saved successfully!');
+    } catch (err) {
+      setError('Failed to save settings: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadApiKey = async () => {
+  const savePrivacySettings = async () => {
     try {
-      const data = await getApiKey();
-      setApiKey(data.key || '');
-    } catch (error) {
-      console.error('Failed to load API key:', error);
+      setLoading(true);
+      setError('');
+      setSuccess('');
+
+      const profile = await database.profile.get();
+      await database.profile.update({
+        ...profile,
+        settings: {
+          ...profile.settings,
+          privacy
+        }
+      });
+
+      setSuccess('Privacy settings saved successfully!');
+    } catch (err) {
+      setError('Failed to save settings: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleUpdateSettings = async (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     try {
-      await updateUserSettings(settings);
-      toast.success('Settings updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update settings');
+      setLoading(true);
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (updateError) throw updateError;
+
+      setSuccess('Password changed successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (err) {
+      setError('Failed to change password: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenerateApiKey = async () => {
-    if (!confirm('Generate a new API key? Your old key will be invalidated.')) return;
-    
-    setLoading(true);
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    const confirmation = window.prompt('Type "DELETE" to confirm account deletion:');
+    if (confirmation !== 'DELETE') {
+      setError('Account deletion cancelled');
+      return;
+    }
+
     try {
-      const data = await generateNewApiKey();
-      setApiKey(data.key);
-      toast.success('New API key generated!');
-    } catch (error) {
-      toast.error('Failed to generate API key');
+      setLoading(true);
+      
+      // Delete user data
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Delete from database (triggers cascade delete in Supabase)
+      const { error: deleteError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+
+      if (deleteError) throw deleteError;
+
+      // Sign out and redirect
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (err) {
+      setError('Failed to delete account: ' + err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRevokeApiKey = async () => {
-    if (!confirm('Revoke your API key? This cannot be undone.')) return;
-    
-    setLoading(true);
-    try {
-      await revokeApiKey();
-      setApiKey('');
-      toast.success('API key revoked');
-    } catch (error) {
-      toast.error('Failed to revoke API key');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const copyApiKey = () => {
-    navigator.clipboard.writeText(apiKey);
-    setCopied(true);
-    toast.success('API key copied to clipboard!');
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-slate-400">Manage your account preferences and security</p>
-        </div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Settings</h1>
 
-        {/* Profile Section */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6 mb-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-indigo-500 rounded-full flex items-center justify-center">
-              <User className="text-white" size={32} />
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-800">{success}</p>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-4 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={`pb-3 px-2 font-medium transition flex items-center gap-2 ${
+            activeTab === 'notifications'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Bell className="w-4 h-4" />
+          Notifications
+        </button>
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`pb-3 px-2 font-medium transition flex items-center gap-2 ${
+            activeTab === 'security'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Lock className="w-4 h-4" />
+          Security
+        </button>
+        <button
+          onClick={() => setActiveTab('privacy')}
+          className={`pb-3 px-2 font-medium transition flex items-center gap-2 ${
+            activeTab === 'privacy'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+          Privacy
+        </button>
+      </div>
+
+      {/* Notifications Tab */}
+      {activeTab === 'notifications' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-6">Notification Preferences</h2>
+          
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Email Notifications</div>
+                <div className="text-sm text-gray-600">Receive email updates about your account</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifications.emailNotifications}
+                  onChange={() => handleNotificationChange('emailNotifications')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-white">{user?.email || 'User'}</h2>
-              <p className="text-slate-400 text-sm">Founder Plan</p>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Project Updates</div>
+                <div className="text-sm text-gray-600">Get notified about project changes</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifications.projectUpdates}
+                  onChange={() => handleNotificationChange('projectUpdates')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Model Alerts</div>
+                <div className="text-sm text-gray-600">Alerts when models finish training</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifications.modelAlerts}
+                  onChange={() => handleNotificationChange('modelAlerts')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Marketing Emails</div>
+                <div className="text-sm text-gray-600">Receive news and product updates</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifications.marketingEmails}
+                  onChange={() => handleNotificationChange('marketingEmails')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
           </div>
 
-          <form onSubmit={handleUpdateSettings} className="space-y-6">
-            {/* Email */}
+          <button
+            onClick={saveNotificationSettings}
+            disabled={loading}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      )}
+
+      {/* Security Tab */}
+      {activeTab === 'security' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-6">Change Password</h2>
+          
+          <form onSubmit={handlePasswordChange} className="space-y-4 mb-8">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                <Mail size={16} className="inline mr-2" />
-                Email Address
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Current Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pr-10"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm New Password
               </label>
               <input
-                type="email"
-                value={settings.email}
-                onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="your@email.com"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+                minLength={6}
               />
             </div>
 
-            {/* Notifications Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Bell size={20} className="text-cyan-400" />
-                <div>
-                  <p className="text-white font-medium">Email Notifications</p>
-                  <p className="text-slate-400 text-sm">Receive updates about your projects</p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.notifications}
-                  onChange={(e) => setSettings({ ...settings, notifications: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cyan-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-              </label>
-            </div>
-
-            {/* 2FA Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Shield size={20} className="text-green-400" />
-                <div>
-                  <p className="text-white font-medium">Two-Factor Authentication</p>
-                  <p className="text-slate-400 text-sm">Add an extra layer of security</p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.twoFactorAuth}
-                  onChange={(e) => setSettings({ ...settings, twoFactorAuth: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-              </label>
-            </div>
-
-            {/* Save Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-indigo-500 text-white font-semibold py-3 rounded-lg hover:from-cyan-600 hover:to-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Save Changes'}
+              <Lock className="w-4 h-4" />
+              {loading ? 'Updating...' : 'Update Password'}
             </button>
           </form>
-        </div>
 
-        {/* API Key Section */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Key size={24} className="text-cyan-400" />
-            <h2 className="text-2xl font-bold text-white">API Key</h2>
-          </div>
-
-          {apiKey ? (
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={apiKey}
-                  readOnly
-                  className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white font-mono text-sm"
-                />
-                <button
-                  onClick={copyApiKey}
-                  className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center gap-2"
-                >
-                  {copied ? <Check size={18} /> : <Copy size={18} />}
-                </button>
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold mb-4 text-red-600">Danger Zone</h3>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                <div>
+                  <div className="font-medium text-red-900">Delete Account</div>
+                  <div className="text-sm text-red-700">
+                    Once you delete your account, there is no going back. All your data will be permanently deleted.
+                  </div>
+                </div>
               </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleGenerateApiKey}
-                  disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition disabled:opacity-50"
-                >
-                  <RefreshCw size={18} />
-                  Regenerate
-                </button>
-                <button
-                  onClick={handleRevokeApiKey}
-                  disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition disabled:opacity-50"
-                >
-                  <Trash2 size={18} />
-                  Revoke
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-slate-400 mb-4">You don't have an API key yet</p>
               <button
-                onClick={handleGenerateApiKey}
+                onClick={handleDeleteAccount}
                 disabled={loading}
-                className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-indigo-600 transition disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
               >
-                Generate API Key
+                <Trash2 className="w-4 h-4" />
+                Delete Account
               </button>
             </div>
-          )}
-
-          <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-            <p className="text-amber-400 text-sm">
-              <strong>⚠️ Important:</strong> Keep your API key secure. Don't share it publicly or commit it to version control.
-            </p>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Privacy Tab */}
+      {activeTab === 'privacy' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-6">Privacy Settings</h2>
+          
+          <div className="space-y-6 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile Visibility
+              </label>
+              <select
+                value={privacy.profileVisibility}
+                onChange={(e) => handlePrivacyChange('profileVisibility', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="public">Public - Anyone can see your profile</option>
+                <option value="private">Private - Only you can see your profile</option>
+                <option value="connections">Connections Only - Only connections can see</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Show Email Address</div>
+                <div className="text-sm text-gray-600">Allow others to see your email</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={privacy.showEmail}
+                  onChange={() => handlePrivacyChange('showEmail', !privacy.showEmail)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Show Projects</div>
+                <div className="text-sm text-gray-600">Display your projects on your profile</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={privacy.showProjects}
+                  onChange={() => handlePrivacyChange('showProjects', !privacy.showProjects)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+
+          <button
+            onClick={savePrivacySettings}
+            disabled={loading}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
+export default Settings;

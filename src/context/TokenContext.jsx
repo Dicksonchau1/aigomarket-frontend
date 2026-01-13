@@ -1,128 +1,75 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { useAuth } from './AuthContext';
+import { database } from '../services/database';
 
-const TokenContext = createContext();
+const TokenContext = createContext({});
 
-export const useTokens = () => {
+export const useToken = () => {
   const context = useContext(TokenContext);
   if (!context) {
-    throw new Error('useTokens must be used within TokenProvider');
+    throw new Error('useToken must be used within TokenProvider');
   }
   return context;
 };
 
 export const TokenProvider = ({ children }) => {
-  const [tokens, setTokens] = useState({
-    available: 0,
-    used: 0,
-    total: 0
-  });
+  const { user } = useAuth();
+  const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch token balance
-  const fetchTokens = async () => {
+  useEffect(() => {
+    if (user) {
+      loadBalance();
+    } else {
+      setBalance(0);
+      setLoading(false);
+    }
+  }, [user]);
+
+  const loadBalance = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setTokens({ available: 0, used: 0, total: 0 });
-        setLoading(false);
-        return;
-      }
-
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/tokens/balance`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      setTokens(response.data);
+      const currentBalance = await database.wallet.getBalance();
+      setBalance(currentBalance);
     } catch (error) {
-      console.error('Error fetching tokens:', error);
-      setTokens({ available: 0, used: 0, total: 0 });
+      console.error('Failed to load balance:', error);
+      setBalance(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Use tokens
-  const useTokensAmount = async (amount, feature) => {
+  const refreshBalance = async () => {
+    await loadBalance();
+  };
+
+  const addTokens = async (amount) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/tokens/use`,
-        { amount, feature },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      // Update local state
-      setTokens(prev => ({
-        ...prev,
-        available: prev.available - amount,
-        used: prev.used + amount
-      }));
-
-      return response.data;
+      const newBalance = await database.wallet.updateBalance(amount, 'credit');
+      setBalance(newBalance);
+      return newBalance;
     } catch (error) {
-      console.error('Error using tokens:', error);
+      console.error('Failed to add tokens:', error);
       throw error;
     }
   };
 
-  // Purchase tokens
-  const purchaseTokens = async (amount) => {
+  const deductTokens = async (amount) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/tokens/purchase`,
-        { amount },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      // Refresh balance after purchase
-      await fetchTokens();
-
-      return response.data;
+      const newBalance = await database.wallet.updateBalance(amount, 'debit');
+      setBalance(newBalance);
+      return newBalance;
     } catch (error) {
-      console.error('Error purchasing tokens:', error);
+      console.error('Failed to deduct tokens:', error);
       throw error;
     }
   };
-
-  // Check if user has enough tokens
-  const hasEnoughTokens = (required) => {
-    return tokens.available >= required;
-  };
-
-  // Refresh tokens
-  const refreshTokens = () => {
-    fetchTokens();
-  };
-
-  useEffect(() => {
-    fetchTokens();
-  }, []);
 
   const value = {
-    tokens,
+    balance,
     loading,
-    fetchTokens,
-    useTokens: useTokensAmount,
-    purchaseTokens,
-    hasEnoughTokens,
-    refreshTokens
+    refreshBalance,
+    addTokens,
+    deductTokens,
   };
 
   return (
@@ -131,5 +78,3 @@ export const TokenProvider = ({ children }) => {
     </TokenContext.Provider>
   );
 };
-
-export default TokenContext;
