@@ -177,7 +177,7 @@ const Benchmark = () => {
                                                 <span className="tag emerald">{result.reduction}</span>
                                             </td>
                                             <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>
-                                                {result.originalAccuracy} → {result.compressedAccuracy}
+                                                {result.originalAccuracy} ??{result.compressedAccuracy}
                                             </td>
                                             <td style={{ padding: '16px', color: 'var(--accent-emerald)' }}>{result.accuracyLoss}</td>
                                             <td style={{ padding: '16px', fontWeight: '600' }}>{result.inferenceSpeed}</td>

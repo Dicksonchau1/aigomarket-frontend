@@ -1,204 +1,214 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  signUpWithEmail, 
-  signInWithEmail, 
-  signInWithGoogle, 
-  signInWithGithub, 
-  signOut as supabaseSignOut,
-  getCurrentUser,
-  onAuthStateChange,
-  resetPassword as supabaseResetPassword
-} from '../services/supabaseAuth';
-import { database } from '../services/database';
-import toast from 'react-hot-toast';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkUser();
+    // Initialize auth state
+    initializeAuth();
 
-    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth state changed:', event, session?.user?.email);
-      
-      if (session?.user) {
-        setUser(session.user);
-        setSession(session);
-        
-        // ✅ FIX: Break the async deadlock with setTimeout
-        setTimeout(async () => {
-          try {
-            await ensureUserProfile(session.user);
-          } catch (error) {
-            console.error('❌ Profile creation error:', error);
-          } finally {
-            setLoading(false); // ✅ CRITICAL: Always set loading to false
-          }
-        }, 0);
-      } else {
-        setUser(null);
-        setSession(null);
-        setLoading(false); // ✅ CRITICAL: Always set loading to false
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        console.log('🔐 Auth state changed:', event);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        setLoading(false);
       }
-    });
+    );
 
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
-  const checkUser = async () => {
+  // Initialize authentication state
+  const initializeAuth = async () => {
     try {
-      const { user, error } = await getCurrentUser();
-      if (error) throw error;
+      // Get current session (safe method)
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
-      if (user) {
-        setUser(user);
-        
-        // ✅ FIX: Break the async deadlock
-        setTimeout(async () => {
-          try {
-            await ensureUserProfile(user);
-          } catch (error) {
-            console.error('❌ Profile check error:', error);
-          } finally {
-            setLoading(false);
-          }
-        }, 0);
+      if (error) {
+        console.error('❌ Error getting session:', error);
+        setSession(null);
+        setUser(null);
       } else {
-        setLoading(false);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
       }
     } catch (error) {
-      console.error('❌ Error checking user:', error);
-      setLoading(false); // ✅ CRITICAL: Always set loading to false
+      console.error('❌ Auth initialization error:', error);
+      setSession(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const ensureUserProfile = async (user) => {
-    try {
-      console.log('👤 Checking profile for:', user.email);
-      const profile = await database.profile.get();
-      console.log('✅ Profile exists:', profile);
-    } catch (error) {
-      console.log('📝 Creating user profile...');
-      try {
-        await database.profile.update({
-          email: user.email,
-          display_name: user.user_metadata?.full_name || user.email?.split('@')[0],
-          created_at: new Date().toISOString()
-        });
-        console.log('✅ Profile created');
-      } catch (createError) {
-        console.error('❌ Profile creation failed:', createError);
-      }
-    }
-  };
-
+  // Sign up with email/password
   const signUp = async (email, password, fullName) => {
     try {
-      console.log('📝 Signing up:', email);
-      const { data, error } = await signUpWithEmail(email, password, fullName);
-      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            display_name: fullName,
+          },
+        },
+      });
+
       if (error) throw error;
 
-      toast.success('Account created! Please check your email to verify.');
-      
-      return { data, error: null };
+      // Create user profile
+      if (data.user) {
+        await createUserProfile(data.user, fullName);
+      }
+
+      return data;
     } catch (error) {
       console.error('❌ Sign up error:', error);
-      toast.error(error.message || 'Failed to create account');
-      return { data: null, error };
+      throw error;
     }
   };
 
+  // Sign in with email/password
   const signIn = async (email, password) => {
     try {
-      console.log('🔑 Signing in:', email);
-      const { data, error } = await signInWithEmail(email, password);
-      
-      if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      setUser(data.user);
-      setSession(data.session);
-      
-      toast.success('Welcome back!');
-      
-      return { data, error: null };
+      if (error) throw error;
+      return data;
     } catch (error) {
       console.error('❌ Sign in error:', error);
-      toast.error(error.message || 'Failed to sign in');
-      return { data: null, error };
+      throw error;
     }
   };
 
-  const signInWithProvider = async (provider) => {
+  // Sign in with Google
+  const signInWithGoogle = async () => {
     try {
-      console.log(`🔗 Signing in with ${provider}...`);
-      let result;
-      
-      if (provider === 'google') {
-        result = await signInWithGoogle();
-      } else if (provider === 'github') {
-        result = await signInWithGithub();
-      }
-      
-      const { data, error } = result;
-      
-      if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-      return { data, error: null };
+      if (error) throw error;
+      return data;
     } catch (error) {
-      console.error(`❌ ${provider} sign in error:`, error);
-      toast.error(error.message || `Failed to sign in with ${provider}`);
-      return { data: null, error };
+      console.error('❌ Google sign in error:', error);
+      throw error;
     }
   };
 
+  // Sign in with GitHub
+  const signInWithGithub = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ GitHub sign in error:', error);
+      throw error;
+    }
+  };
+
+  // Sign out
   const signOut = async () => {
     try {
-      console.log('👋 Signing out...');
-      const { error } = await supabaseSignOut();
-      
+      const { error } = await supabase.auth.signOut();
       if (error) throw error;
-
+      
       setUser(null);
       setSession(null);
-      
-      toast.success('Signed out successfully');
-      
-      return { error: null };
     } catch (error) {
       console.error('❌ Sign out error:', error);
-      toast.error(error.message || 'Failed to sign out');
-      return { error };
+      throw error;
     }
   };
 
-  const resetPassword = async (email) => {
+  // Create user profile in database
+  const createUserProfile = async (user, fullName) => {
     try {
-      const { data, error } = await supabaseResetPassword(email);
-      
-      if (error) throw error;
+      const profileData = {
+        id: user.id,
+        email: user.email,
+        display_name: fullName || user.email?.split('@')[0],
+        avatar_url: user.user_metadata?.avatar_url || null,
+        is_founder: false,
+        created_at: new Date().toISOString(),
+      };
 
-      toast.success('Password reset email sent! Check your inbox.');
-      
-      return { data, error: null };
+      // Try profiles table first
+      let { error: profileError } = await supabase
+        .from('profiles')
+        .insert([profileData]);
+
+      // Fallback to users table
+      if (profileError && profileError.code === '42P01') {
+        const { error: userError } = await supabase
+          .from('users')
+          .insert([{
+            id: user.id,
+            email: user.email,
+            username: fullName || user.email?.split('@')[0],
+            is_founder: false,
+            created_at: new Date().toISOString(),
+          }]);
+
+        if (userError) console.error('❌ User profile creation error:', userError);
+      } else if (profileError) {
+        console.error('❌ Profile creation error:', profileError);
+      }
+
+      // Create wallet
+      await createUserWallet(user.id);
     } catch (error) {
-      console.error('❌ Reset password error:', error);
-      toast.error(error.message || 'Failed to send reset email');
-      return { data: null, error };
+      console.error('❌ Error creating user profile:', error);
+    }
+  };
+
+  // Create user wallet
+  const createUserWallet = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('wallets')
+        .insert([{
+          user_id: userId,
+          balance: 0,
+          created_at: new Date().toISOString(),
+        }]);
+
+      if (error && error.code !== '23505') { // Ignore duplicate key error
+        console.error('❌ Wallet creation error:', error);
+      }
+    } catch (error) {
+      console.error('❌ Error creating wallet:', error);
     }
   };
 
@@ -208,9 +218,9 @@ export const AuthProvider = ({ children }) => {
     loading,
     signUp,
     signIn,
-    signInWithProvider,
     signOut,
-    resetPassword,
+    signInWithGoogle,
+    signInWithGithub,
   };
 
   return (

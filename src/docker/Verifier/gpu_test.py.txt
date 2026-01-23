@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+import json
+import time
+
+def test_gpu_efficiency():
+    """
+    Test GPU efficiency if available
+    """
+    try:
+        import torch
+        
+        if not torch.cuda.is_available():
+            raise Exception("No CUDA GPU available")
+        
+        # Simple GPU test
+        device = torch.device('cuda')
+        
+        # Create tensors
+        a = torch.randn(1000, 1000, device=device)
+        b = torch.randn(1000, 1000, device=device)
+        
+        # Measure GPU computation time
+        start = time.time()
+        
+        for _ in range(100):
+            c = torch.matmul(a, b)
+        
+        torch.cuda.synchronize()
+        gpu_time = time.time() - start
+        
+        # Calculate efficiency (lower time = higher efficiency)
+        efficiency = max(0, min(100, 100 - (gpu_time * 10)))
+        
+        output = {
+            'efficiency_percent': round(efficiency, 2),
+            'compute_time_ms': round(gpu_time * 1000, 2),
+            'gpu_name': torch.cuda.get_device_name(0)
+        }
+        
+        print(json.dumps(output))
+        
+    except Exception as e:
+        # Fallback if GPU not available
+        output = {
+            'efficiency_percent': 0,
+            'error': str(e)
+        }
+        print(json.dumps(output))
+
+if __name__ == '__main__':
+    test_gpu_efficiency()

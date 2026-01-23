@@ -139,7 +139,7 @@ export async function checkRailwayHealth() {
     const data = await response.json();
     return data.success === true;
   } catch (error) {
-    console.error('❌ Railway backend unreachable:', error);
+    console.error('??Railway backend unreachable:', error);
     return false;
   }
 }

@@ -5,7 +5,7 @@ export default function FeaturesSection() {
     {
       icon: <FaLightbulb className="text-accent-gold" />,
       title: "MVP Architect",
-      description: "Idea or sketch → Complete technical blueprint with stack recommendations."
+      description: "Idea or sketch ??Complete technical blueprint with stack recommendations."
     },
     {
       icon: <FaBrain className="text-accent-indigo" />,
@@ -25,7 +25,7 @@ export default function FeaturesSection() {
     {
       icon: <FaCompressAlt className="text-accent-purple" />,
       title: "Seed AI Compression",
-      description: "Lossless compression → 90% smaller models. Perfect for mobile & IoT."
+      description: "Lossless compression ??90% smaller models. Perfect for mobile & IoT."
     },
     {
       icon: <FaMobileAlt className="text-accent-silver" />,
@@ -52,7 +52,7 @@ export default function FeaturesSection() {
             <span className="bg-gradient-primary bg-clip-text text-transparent">Core Features</span>
           </h2>
           <p className="text-xl text-text-secondary font-outfit">Everything You Need</p>
-          <p className="text-text-muted font-outfit">Idea → Blueprint → Deploy. Complete toolkit, startup budget.</p>
+          <p className="text-text-muted font-outfit">Idea ??Blueprint ??Deploy. Complete toolkit, startup budget.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

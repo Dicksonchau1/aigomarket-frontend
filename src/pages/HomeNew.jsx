@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Bolt, Brain, Check, Database, Globe, Link as LinkIcon, Loader2, MessageCircle, CirclePercent, Rocket, Shield, Smartphone, Sparkles, Upload, ChartColumn, Wallet, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Bolt, Brain, Check, Database, Globe, Link as LinkIcon, Loader2, MessageCircle, CirclePercent, Rocket, Shield, Smartphone, Sparkles, Upload, ChartColumn, Wallet, ShieldCheck, TrendingUp, Users, Mic, Eye, Layers, Zap, Crown } from 'lucide-react';
 import NavbarNew from "../components/NavbarNew";
-import AuthModal from '../components/AuthModal';
+import { useMLPersonalization } from '../hooks/useMLPersonalization';
+import { useAuth } from '../context/AuthContext';
 
 function HomeNew() {
   const navigate = useNavigate();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState('login');
+  const { user } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
+  const [mlStatus, setMlStatus] = useState('Initializing AI Engine...');
   const [chatMessages, setChatMessages] = useState([{
     type: 'assistant',
     content: "Hey founder! 👋 Drop your idea or upload a sketch.\n\nI'll analyze and return:\n**Edge AI model, tech stack, algorithms, datasets, Seed AI compression target, and estimated budget.**"
@@ -20,13 +21,90 @@ function HomeNew() {
   const [uploadedPreview, setUploadedPreview] = useState('');
   const chatRef = useRef(null);
   const fileInputRef = useRef(null);
+  const canvasRef = useRef(null);
+  const logoFadeRef = useRef(null);
+
+  // ML Personalization
+  const { personalization, trackClick } = useMLPersonalization(user?.id);
 
   useEffect(() => {
+    // ML Loading Sequence
+    const loadingSteps = [
+      { text: 'Initializing AI Engine...', delay: 500 },
+      { text: 'Loading Neural Networks...', delay: 1000 },
+      { text: 'Personalizing Experience...', delay: 1500 },
+      { text: 'Ready to Launch!', delay: 2000 }
+    ];
+
+    loadingSteps.forEach(step => {
+      setTimeout(() => {
+        setMlStatus(step.text);
+      }, step.delay);
+    });
+
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2500);
+    }, 3500);
+
     return () => clearTimeout(timer);
   }, []);
+
+  // Neural Network Canvas Animation
+  useEffect(() => {
+    if (!canvasRef.current || !showSplash) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    canvas.width = 120;
+    canvas.height = 120;
+
+    const nodes = [];
+    for (let i = 0; i < 8; i++) {
+      nodes.push({
+        x: Math.random() * 120,
+        y: Math.random() * 120,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5
+      });
+    }
+
+    let animationId;
+    function animate() {
+      ctx.clearRect(0, 0, 120, 120);
+
+      nodes.forEach((node, i) => {
+        node.x += node.vx;
+        node.y += node.vy;
+
+        if (node.x < 0 || node.x > 120) node.vx *= -1;
+        if (node.y < 0 || node.y > 120) node.vy *= -1;
+
+        nodes.forEach((other, j) => {
+          if (i < j) {
+            const dist = Math.hypot(node.x - other.x, node.y - other.y);
+            if (dist < 60) {
+              ctx.strokeStyle = `rgba(255, 255, 255, ${1 - dist / 60})`;
+              ctx.lineWidth = 0.5;
+              ctx.beginPath();
+              ctx.moveTo(node.x, node.y);
+              ctx.lineTo(other.x, other.y);
+              ctx.stroke();
+            }
+          }
+        });
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    }
+
+    animate();
+    return () => cancelAnimationFrame(animationId);
+  }, [showSplash]);
 
   useEffect(() => {
     if (chatRef.current) {
@@ -37,11 +115,6 @@ function HomeNew() {
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) element.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleOpenAuthModal = (mode) => {
-    setAuthModalMode(mode);
-    setAuthModalOpen(true);
   };
 
   const handleImageUpload = (e) => {
@@ -61,6 +134,8 @@ function HomeNew() {
 
   const handleSendMessage = async () => {
     if ((!inputValue.trim() && !uploadedFile) || isProcessing) return;
+
+    trackClick('button', 'ask-aigo-send');
 
     const userMessage = { type: 'user', content: inputValue.trim(), image: uploadedPreview };
     setChatMessages(prev => [...prev, userMessage]);
@@ -102,180 +177,163 @@ function HomeNew() {
 
   const suggestionSeeds = ['🌱 Plant detector', '💪 Fitness coach', '🏠 Smart home'];
 
-  // SIMPLIFIED Animation Variants for Framer Motion
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: "easeOut" }
-    }
-  };
-
-  const fadeIn = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { duration: 0.8, ease: "easeOut" }
-    }
-  };
-
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
-
   if (showSplash) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950 animate-fade-out">
-        <div className="text-center animate-fade-in">
-          <img 
-            src="/logo.jpeg" 
-            alt="AIGO" 
-            className="h-32 w-32 mx-auto mb-6 object-contain drop-shadow-[0_0_80px_rgba(6,182,212,0.6)] animate-pulse-slow"
-          />
-          <h1 className="text-5xl font-black text-white mb-2 tracking-tight">AIGO</h1>
-          <p className="text-slate-400 text-sm">Edge AI Platform for Founders</p>
+      <div className="splash-screen">
+        <div className="splash-content">
+          {/* Logo with Neural Network Canvas */}
+          <div className="splash-logo-container">
+            <div className="splash-neural-bg">
+              <canvas ref={canvasRef} />
+            </div>
+            <div 
+              ref={logoFadeRef}
+              className="splash-logo-wrapper"
+            >
+              <img 
+                src="/logo.png" 
+                alt="AIGO" 
+                className="splash-logo-image"
+              />
+            </div>
+          </div>
+
+          {/* Brand Name */}
+          <h1 className="splash-brand-name">
+            AIGO
+          </h1>
+          
+          <p className="splash-tagline">Edge AI Platform for Founders</p>
+
+          {/* ML Status */}
+          <div className="splash-status">
+            <div className="splash-status-dot" />
+            <span>{mlStatus}</span>
+          </div>
+
+          {/* Loading Dots */}
+          <div className="splash-loading-dots">
+            <div className="splash-dot" style={{ animationDelay: '0s' }} />
+            <div className="splash-dot" style={{ animationDelay: '0.16s' }} />
+            <div className="splash-dot" style={{ animationDelay: '0.32s' }} />
+          </div>
         </div>
-        
-        <style>{`
-          @keyframes fade-in {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-          }
-          @keyframes fade-out {
-            from { opacity: 1; }
-            to { opacity: 0; }
-          }
-          @keyframes pulse-slow {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-          }
-          .animate-fade-in {
-            animation: fade-in 0.8s ease-out;
-          }
-          .animate-fade-out {
-            animation: fade-out 0.5s ease-out 2s forwards;
-          }
-          .animate-pulse-slow {
-            animation: pulse-slow 2s ease-in-out infinite;
-          }
-        `}</style>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <NavbarNew onOpenAuthModal={handleOpenAuthModal} scrollToSection={scrollToSection} navigate={navigate} />
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} initialMode={authModalMode} />
+      <NavbarNew />
 
-      {/* ============================================ */}
-      {/* HERO SECTION - FIXED SPACING */}
-      {/* ============================================ */}
-      <section id="hero" className="px-6 py-20" style={{ paddingTop: '120px' }}>
-        <div className="mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
+      {/* REVISED HERO SECTION */}
+      <section id="hero" className="hero-section-wrapper">
+        {/* Background Elements */}
+        <div className="hero-bg-elements">
+          <div className="hero-grid-pattern" />
           
-          {/* LEFT COLUMN - TEXT CONTENT */}
+          <div className="hero-gradient-orbs">
+            <div className="hero-orb hero-orb-1" />
+            <div className="hero-orb hero-orb-2" />
+            <div className="hero-orb hero-orb-3" />
+          </div>
+
+          <div className="hero-bg-logo-container">
+            <img 
+              src="/logo.png" 
+              alt="AIGO Background" 
+              className="hero-bg-logo"
+            />
+          </div>
+
+          <div className="hero-particles">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="hero-particle" />
+            ))}
+          </div>
+        </div>
+
+        {/* Hero Content */}
+        <div className="hero-content-container">
           <motion.div 
-            className="space-y-8 lg:pr-8"
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
+            className="hero-content-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            {/* BADGE */}
-            <motion.span 
-              variants={fadeInUp}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/50 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400"
-            >
-              <Bolt className="h-3 w-3" />
-              <span>Fastest AI Builder</span>
-            </motion.span>
+            <span className="hero-badge">
+              <Sparkles className="h-3 w-3" />
+              <span>Bring your dream from cloud to edge</span>
+            </span>
 
-            {/* HERO TITLE - FIXED SPACING */}
-            <motion.h1 
-              variants={fadeInUp}
-              className="text-5xl font-black leading-[1.1] text-white md:text-6xl" 
-              style={{ letterSpacing: '-0.02em' }}
-            >
-              Edge AI Platform
-              <br />
-              for Founders.
-            </motion.h1>
+            <h1 className="hero-title-3d">
+              <span className="hero-title-line">AIGO provides the foundation</span>
+              <span className="hero-title-line">for building your</span>
+              <span className="hero-title-line bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">on-device intelligence.</span>
+            </h1>
 
-            {/* SUBTITLE */}
-            <motion.p 
-              variants={fadeInUp}
-              className="text-lg text-slate-400 md:text-xl leading-relaxed"
-            >
-              Upload an idea or sketch. AIGO designs your on‑device AI model, tech stack, datasets, and budget — ready to deploy on mobile, web, or IoT.
-            </motion.p>
+            <p className="hero-subtitle-enhanced">
+              We believe in your talent. So should you.
+            </p>
 
-            {/* CTA BUTTONS */}
-            <motion.div 
-              variants={fadeInUp}
-              className="flex flex-wrap gap-4"
-            >
+            <div className="hero-cta-buttons">
               <button 
-                onClick={() => scrollToSection('ask-aigo')} 
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:scale-105 hover:shadow-indigo-500/40"
+                onClick={() => {
+                  trackClick('button', 'hero-get-started');
+                  navigate('/auth');
+                }}
+                className="hero-btn-primary"
               >
-                <span>Start Building</span>
+                <span>Get Started</span>
                 <Rocket className="h-5 w-5" />
               </button>
               <button 
-                onClick={() => scrollToSection('ask-aigo')} 
-                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-slate-800"
+                onClick={() => {
+                  trackClick('button', 'hero-ask-aigo');
+                  scrollToSection('ask-aigo');
+                }}
+                className="hero-btn-secondary"
               >
                 <span>Ask AIGO</span>
                 <MessageCircle className="h-5 w-5" />
               </button>
-            </motion.div>
-          </motion.div>
-
-          {/* RIGHT COLUMN - LOGO IMAGE */}
-          <motion.div 
-            className="relative"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-12 shadow-2xl backdrop-blur flex items-center justify-center">
-              <img 
-                src="/logo.jpeg" 
-                alt="AIGO Platform" 
-                className="h-auto w-full max-w-md object-contain drop-shadow-[0_0_50px_rgba(6,182,212,0.5)]"
-              />
             </div>
-            
-            {/* FLOATING BADGE */}
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1 }}
-              className="absolute -top-6 left-6 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/95 px-4 py-3 shadow-xl backdrop-blur"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/20">
-                <Brain className="h-5 w-5 text-cyan-300" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white">YOLOv10-Edge</p>
-                <p className="text-xs text-slate-400">Deployed in 3.2s</p>
-              </div>
-            </motion.div>
+
+            {/* Stats Row */}
+            <div className="hero-stats-row">
+              <motion.div 
+                className="hero-stat"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <div className="hero-stat-value">2.4K+</div>
+                <div className="hero-stat-label">Active Talents</div>
+              </motion.div>
+              <motion.div 
+                className="hero-stat"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+              >
+                <div className="hero-stat-value">847</div>
+                <div className="hero-stat-label">AI Models</div>
+              </motion.div>
+              <motion.div 
+                className="hero-stat"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 }}
+              >
+                <div className="hero-stat-value">94%</div>
+                <div className="hero-stat-label">Match Success</div>
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ============================================ */}
-      {/* ASK AIGO SECTION - FIXED SPACING */}
-      {/* ============================================ */}
+      {/* ASK AIGO SECTION */}
       <section id="ask-aigo" className="border-y border-slate-900 bg-slate-900/40 px-6 py-20">
         <div className="mx-auto max-w-4xl text-center mb-12">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400 mb-3">Try It Now</p>
@@ -286,7 +344,6 @@ function HomeNew() {
         <div className="mx-auto max-w-4xl">
           <div className="rounded-3xl border border-slate-800 bg-slate-950/80 shadow-2xl overflow-hidden">
             
-            {/* CHAT HEADER */}
             <div className="flex items-center justify-between border-b border-slate-900 p-5 bg-slate-900/50">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600">
@@ -303,7 +360,6 @@ function HomeNew() {
               </div>
             </div>
 
-            {/* CHAT MESSAGES */}
             <div className="p-6" style={{ minHeight: '400px', maxHeight: '600px', overflowY: 'auto' }} ref={chatRef}>
               {chatMessages.map((msg, idx) => (
                 <div key={idx} className={`flex gap-3 mb-6 ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -334,7 +390,13 @@ function HomeNew() {
                                 </div>
                               ))}
                             </div>
-                            <button onClick={() => handleOpenAuthModal('register')} className="mt-4 w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold uppercase text-white transition hover:bg-indigo-500">
+                            <button 
+                              onClick={() => {
+                                trackClick('button', 'start-building-mvp');
+                                navigate('/auth');
+                              }}
+                              className="mt-4 w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold uppercase text-white transition hover:bg-indigo-500"
+                            >
                               Start Building This MVP
                             </button>
                           </div>
@@ -346,7 +408,6 @@ function HomeNew() {
               ))}
             </div>
 
-            {/* CHAT INPUT */}
             <div className="border-t border-slate-900 p-5 bg-slate-900/30">
               {uploadedPreview && (
                 <div className="mb-3 flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs">
@@ -356,7 +417,13 @@ function HomeNew() {
               )}
 
               <div className="flex gap-3">
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800">
+                <button 
+                  onClick={() => {
+                    trackClick('button', 'upload-sketch');
+                    fileInputRef.current?.click();
+                  }}
+                  className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+                >
                   <Upload className="h-4 w-4" />
                   <span>Upload Sketch</span>
                 </button>
@@ -371,7 +438,11 @@ function HomeNew() {
                   rows={1}
                 />
                 
-                <button onClick={handleSendMessage} disabled={isProcessing || (!inputValue.trim() && !uploadedFile)} className="flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 px-5 py-3 text-white transition hover:opacity-90 disabled:opacity-40">
+                <button 
+                  onClick={handleSendMessage}
+                  disabled={isProcessing || (!inputValue.trim() && !uploadedFile)}
+                  className="flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 px-5 py-3 text-white transition hover:opacity-90 disabled:opacity-40"
+                >
                   {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 </button>
               </div>
@@ -379,7 +450,14 @@ function HomeNew() {
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
                 <span>Try:</span>
                 {suggestionSeeds.map(seed => (
-                  <button key={seed} onClick={() => setInputValue(seed.substring(3))} className="rounded-full border border-slate-800 px-3 py-1 text-slate-300 transition hover:bg-slate-900">
+                  <button 
+                    key={seed}
+                    onClick={() => {
+                      trackClick('button', `suggestion-${seed}`);
+                      setInputValue(seed.substring(3));
+                    }}
+                    className="rounded-full border border-slate-800 px-3 py-1 text-slate-300 transition hover:bg-slate-900"
+                  >
                     {seed}
                   </button>
                 ))}
@@ -389,94 +467,186 @@ function HomeNew() {
         </div>
       </section>
 
-      {/* ============================================ */}
-      {/* FEATURES SECTION - FIXED SPACING */}
-      {/* ============================================ */}
+      {/* WORDS FROM FOUNDER SECTION */}
+      <section id="founder" className="px-6 py-20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl opacity-20 animate-float" />
+        
+        <div className="mx-auto max-w-4xl relative">
+          <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 shadow-2xl backdrop-blur">
+            
+            {/* ML Personalization Badge */}
+            {personalization && (
+              <div className="absolute top-6 right-6 flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 rounded-full text-xs font-bold text-white shadow-lg shadow-emerald-500/30 animate-slide-in-right">
+                <Sparkles className="h-3 w-3" />
+                <span>AI Personalized</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-cyan-500">
+              <span className="text-cyan-400 text-xl">✦</span>
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">Words from Founder</span>
+            </div>
+
+            <h2 className="text-4xl font-black mb-8 bg-gradient-to-r from-white via-cyan-300 to-indigo-400 bg-clip-text text-transparent">
+              The Era of Collective Talent
+            </h2>
+
+            <div className="space-y-6 text-lg text-slate-400 leading-relaxed mb-10">
+              <p className="opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+                "In today's volatile economy, the path of the solo founder has never been more challenging. As <span className="text-white font-semibold relative inline-block">Edge AI<span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-indigo-500 opacity-50"></span></span> reshapes the world—moving intelligence from distant servers to the very devices we hold—the demand for specialized algorithms is exploding. Yet, many of the world's greatest talents remain isolated.
+              </p>
+              
+              <p className="opacity-0 animate-fade-in-up" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
+                AIGO was born from a simple realization: <span className="text-white font-semibold relative inline-block">No one should have to build alone.<span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-indigo-500 opacity-50"></span></span>
+              </p>
+              
+              <p className="opacity-0 animate-fade-in-up" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
+                We are here to provide the <strong className="text-white">anchor</strong>. We are building more than a marketplace; we are forging a community where individual capability is amplified by collective strength. We provide the platform to reveal your unique talents to the world."
+              </p>
+            </div>
+
+            {/* ML Insights */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 p-6 bg-gradient-to-br from-cyan-500/5 to-indigo-500/5 border border-cyan-500/20 rounded-2xl">
+              <div className="text-center p-4 bg-slate-900/50 rounded-xl hover:transform hover:-translate-y-1 transition-transform">
+                <div className="text-4xl font-black bg-gradient-to-br from-cyan-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+                  <Users className="h-10 w-10 mx-auto mb-2 text-cyan-400" />
+                  2.4K+
+                </div>
+                <div className="text-xs uppercase tracking-wider text-slate-500">Active Talents</div>
+              </div>
+              <div className="text-center p-4 bg-slate-900/50 rounded-xl hover:transform hover:-translate-y-1 transition-transform">
+                <div className="text-4xl font-black bg-gradient-to-br from-cyan-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+                  <Brain className="h-10 w-10 mx-auto mb-2 text-indigo-400" />
+                  847
+                </div>
+                <div className="text-xs uppercase tracking-wider text-slate-500">AI Models</div>
+              </div>
+              <div className="text-center p-4 bg-slate-900/50 rounded-xl hover:transform hover:-translate-y-1 transition-transform">
+                <div className="text-4xl font-black bg-gradient-to-br from-cyan-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+                  <TrendingUp className="h-10 w-10 mx-auto mb-2 text-emerald-400" />
+                  94%
+                </div>
+                <div className="text-xs uppercase tracking-wider text-slate-500">Match Success</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 pt-8 border-t border-slate-800">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center text-2xl font-black text-white shadow-lg shadow-indigo-500/40">
+                A
+              </div>
+              <div>
+                <h4 className="text-xl font-bold text-white mb-1">AIGO Founder</h4>
+                <p className="text-sm text-cyan-400 font-semibold">Visionary Leader & AI Advocate</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-4 mt-8">
+              <button
+                onClick={() => {
+                  trackClick('button', 'founder-explore-marketplace');
+                  navigate('/marketplace');
+                }}
+                className="relative flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition hover:scale-105 overflow-hidden group"
+              >
+                <span className="relative z-10">Explore Marketplace</span>
+                <ArrowRight className="h-5 w-5 relative z-10" />
+                <div className="absolute top-0 right-0 bg-yellow-400 text-slate-900 text-xs font-black px-2 py-1 rounded-bl-lg">
+                  AI Pick
+                </div>
+                <div className="absolute inset-0 bg-white/20 transform scale-0 group-hover:scale-100 rounded-full transition-transform duration-600 origin-center" />
+              </button>
+
+              <button
+                onClick={() => {
+                  trackClick('button', 'founder-join-community');
+                  navigate('/auth');
+                }}
+                className="flex items-center gap-3 px-8 py-4 border-2 border-cyan-500 text-cyan-400 font-bold rounded-xl transition hover:bg-cyan-500/10"
+              >
+                <span>Join Community</span>
+                <Sparkles className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CONDENSED FEATURES SECTION */}
       <section id="features" className="px-6 py-20">
         <div className="mx-auto max-w-6xl text-center mb-12">
           <h2 className="text-4xl font-black text-white mb-3">Core Features</h2>
           <p className="text-lg text-slate-400">Everything You Need</p>
-          <p className="text-sm text-slate-500 mt-2">Idea → Blueprint → Deploy. Complete toolkit, startup budget.</p>
+          <p className="text-sm text-slate-500 mt-2">Idea → Blueprint → Deploy</p>
         </div>
         
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {/* Feature 1 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
               <Sparkles className="h-5 w-5" />
             </div>
             <h3 className="text-base font-bold text-white mb-2">MVP Architect</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">Idea or sketch → Complete technical blueprint with stack recommendations.</p>
+            <p className="text-sm text-slate-400 leading-relaxed">Complete technical blueprint with stack recommendations.</p>
           </div>
 
-          {/* Feature 2 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
               <Brain className="h-5 w-5" />
             </div>
             <h3 className="text-base font-bold text-white mb-2">Edge AI Models</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">50+ optimized models for vision, NLP, audio. 10ms on-device inference.</p>
+            <p className="text-sm text-slate-400 leading-relaxed">50+ models for vision, NLP, audio. 10ms inference.</p>
           </div>
 
-          {/* Feature 3 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
-              <Shield className="h-5 w-5" />
+              <Layers className="h-5 w-5" />
             </div>
             <h3 className="text-base font-bold text-white mb-2">Algorithm Library</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">Plug-and-play: object detection, sentiment, recommendations, and more.</p>
+            <p className="text-sm text-slate-400 leading-relaxed">Object detection, sentiment, dyslexia detection.</p>
           </div>
 
-          {/* Feature 4 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
               <Database className="h-5 w-5" />
             </div>
             <h3 className="text-base font-bold text-white mb-2">Dataset Curation</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">AI-recommended datasets. Properly licensed. Training-ready.</p>
+            <p className="text-sm text-slate-400 leading-relaxed">Licensed, training-ready datasets with AI recommendations.</p>
           </div>
 
-          {/* Feature 5 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
               <CirclePercent className="h-5 w-5" />
             </div>
             <h3 className="text-base font-bold text-white mb-2">Seed AI Compression</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">Lossless compression → 90% smaller models. Perfect for mobile & IoT.</p>
+            <p className="text-sm text-slate-400 leading-relaxed">90% smaller models. Perfect for mobile & IoT.</p>
           </div>
 
-          {/* Feature 6 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
               <Smartphone className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-bold text-white mb-2">One-Click Mobile Export</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">Native iOS + Android apps with embedded AI. App Store ready.</p>
+            <h3 className="text-base font-bold text-white mb-2">One-Click Export</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">Native iOS + Android apps. App Store ready.</p>
           </div>
 
-          {/* Feature 7 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
-              <Globe className="h-5 w-5" />
+              <Mic className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-bold text-white mb-2">Custom Domain Connect</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">Your domain, your app. SSL handled automatically.</p>
+            <h3 className="text-base font-bold text-white mb-2">Speech & Lip Sync</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">Real-time lip analysis for pronunciation feedback.</p>
           </div>
 
-          {/* Feature 8 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-6 transition hover:-translate-y-1 hover:border-slate-700 hover:shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-cyan-300">
-              <LinkIcon className="h-5 w-5" />
+              <Eye className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-bold text-white mb-2">Backend/Frontend Pairing</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">Railway + Netlify. Env variables & CORS auto-configured.</p>
+            <h3 className="text-base font-bold text-white mb-2">Dyslexia Detection</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">Eye-tracking and adaptive learning pathways.</p>
           </div>
         </div>
       </section>
 
-      {/* ============================================ */}
-      {/* HOW IT WORKS SECTION - FIXED SPACING */}
-      {/* ============================================ */}
+      {/* HOW IT WORKS SECTION */}
       <section id="pipeline" className="border-y border-slate-900 bg-slate-900/40 px-6 py-20">
         <div className="mx-auto max-w-6xl text-center mb-12">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400 mb-3">How It Works</p>
@@ -485,7 +655,6 @@ function HomeNew() {
         </div>
         
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2">
-          {/* Step 1 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/70 p-6">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 text-lg font-black text-white">
               1
@@ -494,7 +663,6 @@ function HomeNew() {
             <p className="text-sm text-slate-400">Text or sketch → Blueprint with AI models, tech stack, and estimated costs.</p>
           </div>
 
-          {/* Step 2 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/70 p-6">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 text-lg font-black text-white">
               2
@@ -503,7 +671,6 @@ function HomeNew() {
             <p className="text-sm text-slate-400">Choose Edge AI models. Get AI-recommended datasets. Fine-tune for your use case.</p>
           </div>
 
-          {/* Step 3 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/70 p-6">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 text-lg font-black text-white">
               3
@@ -512,7 +679,6 @@ function HomeNew() {
             <p className="text-sm text-slate-400">90% model compression, accuracy maintained. Set benchmarks, we optimize.</p>
           </div>
 
-          {/* Step 4 */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/70 p-6">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 text-lg font-black text-white">
               4
@@ -523,242 +689,358 @@ function HomeNew() {
         </div>
       </section>
 
-      {/* ============================================ */}
-      {/* CREATORS SECTION - FIXED SPACING */}
-      {/* ============================================ */}
-      <section id="creator" className="px-6 py-20">
-        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2">
-          
-          {/* LEFT COLUMN */}
-          <div>
-            <h2 className="text-4xl font-black text-white mb-4">
-              Become an <span className="text-purple-400">AI Creator</span>
-            </h2>
-            <p className="text-lg text-slate-400 mb-8">Publish models, datasets, algorithms. Earn commission on every use.</p>
-            
-            <div className="space-y-5">
-              {/* Benefit 1 */}
-              <div className="flex gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
-                  <CirclePercent className="h-5 w-5 text-purple-400" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-white">70% Revenue Share</h4>
-                  <p className="text-sm text-slate-400">Industry-leading creator commission</p>
-                </div>
-              </div>
-
-              {/* Benefit 2 */}
-              <div className="flex gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
-                  <ChartColumn className="h-5 w-5 text-purple-400" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-white">Real-Time Analytics</h4>
-                  <p className="text-sm text-slate-400">Track downloads, usage, and earnings</p>
-                </div>
-              </div>
-
-              {/* Benefit 3 */}
-              <div className="flex gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
-                  <ShieldCheck className="h-5 w-5 text-purple-400" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-white">IP Protection</h4>
-                  <p className="text-sm text-slate-400">Your models are encrypted and secured</p>
-                </div>
-              </div>
-            </div>
-
-            <button onClick={() => handleOpenAuthModal('register')} className="mt-8 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white transition hover:opacity-90">
-              Start Publishing
-            </button>
+{/* REVISED CREATORS SECTION */}
+{/* REVISED CREATORS SECTION */}
+<section id="creator" className="px-6 py-20">
+  <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2">
+    <div>
+      <h2 className="text-4xl font-black text-white mb-4">
+        Become an <span className="text-purple-400">AI Creator</span>
+      </h2>
+      <p className="text-lg text-slate-400 mb-8">
+        We're dedicated to empowering talent—offering <span className="text-white font-semibold">up to 95% commission</span> on every model, dataset, and algorithm you publish.
+      </p>
+      
+      <div className="space-y-5">
+        <div className="flex gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
+            <ChartColumn className="h-5 w-5 text-purple-400" />
           </div>
-
-          {/* RIGHT COLUMN - CREATOR CARDS */}
-          <div className="space-y-4">
-            {/* Creator 1 */}
-            <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-cyan-500">
-                  JC
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">James Chen</p>
-                  <p className="text-xs text-slate-500">Vision Model Creator</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">This Month</p>
-                <p className="font-mono text-sm font-bold text-white">$2,847</p>
-              </div>
-            </div>
-
-            {/* Creator 2 */}
-            <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-purple-500">
-                  SK
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">Sarah Kim</p>
-                  <p className="text-xs text-slate-500">NLP Specialist</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">This Month</p>
-                <p className="font-mono text-sm font-bold text-white">$1,923</p>
-              </div>
-            </div>
-
-            {/* Creator 3 */}
-            <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-emerald-500">
-                  MP
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">Mike Park</p>
-                  <p className="text-xs text-slate-500">Audio AI Expert</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">This Month</p>
-                <p className="font-mono text-sm font-bold text-white">$3,156</p>
-              </div>
-            </div>
+          <div>
+            <h4 className="text-base font-bold text-white">Real-Time Analytics</h4>
+            <p className="text-sm text-slate-400">Track downloads, usage, and earnings</p>
           </div>
         </div>
-      </section>
 
-      {/* ============================================ */}
-      {/* PRICING SECTION - FIXED SPACING */}
-      {/* ============================================ */}
+        <div className="flex gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
+            <ShieldCheck className="h-5 w-5 text-purple-400" />
+          </div>
+          <div>
+            <h4 className="text-base font-bold text-white">IP Protection</h4>
+            <p className="text-sm text-slate-400">Your models are encrypted and secured</p>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={() => {
+          trackClick('button', 'start-publishing');
+          navigate('/auth');
+        }}
+        className="mt-8 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
+      >
+        Start Publishing
+      </button>
+    </div>
+
+    <div className="space-y-4">
+      <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-cyan-500">
+            JC
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">James Chen</p>
+            <p className="text-xs text-slate-500">Vision Model Creator</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-slate-500">This Month</p>
+          <p className="font-mono text-sm font-bold text-white">$2,847</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-purple-500">
+            SK
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Sarah Kim</p>
+            <p className="text-xs text-slate-500">NLP Specialist</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-slate-500">This Month</p>
+          <p className="font-mono text-sm font-bold text-white">$1,923</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-emerald-500">
+            MP
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Mike Park</p>
+            <p className="text-xs text-slate-500">Audio AI Expert</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-slate-500">This Month</p>
+          <p className="font-mono text-sm font-bold text-white">$3,156</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+      {/* REVISED PRICING SECTION - ANNUAL POWER PASS */}
       <section id="pricing" className="px-6 py-20">
         <div className="mx-auto max-w-5xl text-center mb-12">
-          <h2 className="text-4xl font-black text-white mb-2">Simple Pricing</h2>
-          <p className="text-lg text-slate-400">Launch Today</p>
+          <h2 className="text-4xl font-black text-white mb-2">Annual Power Pass</h2>
+          <p className="text-lg text-slate-400">Unlock full platform access. Build unlimited AI products.</p>
           <p className="text-sm text-slate-500 mt-2">Simple pricing. No hidden fees.</p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2 lg:grid-cols-4">
           
-          {/* FREE TIER */}
+          {/* Free Tier */}
           <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-8">
-            <h3 className="text-xl font-bold text-white mb-1">Free Tier</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="h-5 w-5 text-slate-400" />
+              <h3 className="text-xl font-bold text-white">Free</h3>
+            </div>
             <div className="flex items-baseline gap-2 mb-4">
               <span className="text-4xl font-black text-white">$0</span>
               <span className="text-sm text-slate-500">/forever</span>
             </div>
-            <p className="text-sm text-slate-400 mb-6">Perfect for exploring the platform</p>
+            <p className="text-sm text-slate-400 mb-6">For solo founders validating their first Edge AI MVP.</p>
             
             <ul className="space-y-3 mb-8">
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>1 Edge AI Model</span>
+                <span>Platform access</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>100MB Dataset Storage</span>
+                <span>5 Gold Datasets</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Basic Seed AI Compression</span>
+                <span>Community support</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Community Support</span>
+                <span>Basic Pitch Video</span>
               </li>
             </ul>
             
-            <button onClick={() => handleOpenAuthModal('register')} className="w-full rounded-2xl border border-slate-800 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-900">
-              Get Started Free
+            <button 
+              onClick={() => {
+                trackClick('button', 'pricing-free-tier');
+                navigate('/auth');
+              }}
+              className="w-full rounded-2xl border border-slate-800 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-900"
+            >
+              Start Building
             </button>
           </div>
 
-          {/* FOUNDER TIER */}
-          <div className="relative rounded-3xl border border-cyan-500 bg-slate-950/60 p-8 shadow-[0_0_35px_rgba(6,182,212,0.25)]">
-            <div className="absolute right-6 top-6 rounded-full bg-cyan-500 px-3 py-1 text-xs font-black text-slate-950">
-              EARLY BUNDLE
+          {/* Basic - $29/year */}
+          <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Rocket className="h-5 w-5 text-cyan-400" />
+              <h3 className="text-xl font-bold text-white">Basic</h3>
             </div>
-            
-            <h3 className="text-xl font-bold text-white mb-1">Founder</h3>
             <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-black text-white">$29.90</span>
-              <span className="text-sm text-slate-500">one-time</span>
+              <span className="text-4xl font-black text-white">$29</span>
+              <span className="text-sm text-slate-500">/year</span>
             </div>
-            <p className="text-sm text-slate-400 mb-6">Everything you need to launch your MVP</p>
+            <p className="text-sm text-slate-400 mb-6">Everything to launch your first AI product.</p>
             
             <ul className="space-y-3 mb-8">
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>3 Edge AI Model Licenses</span>
+                <span>500 free tokens/month</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>10GB Dataset Storage</span>
+                <span>50GB dataset storage</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Advanced Seed AI Compression</span>
+                <span>10 AI models</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-200">
                 <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Mobile Export (iOS + Android)</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Custom Domain Connect</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Backend/Frontend Pairing</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Priority Support</span>
+                <span>Priority email support</span>
               </li>
             </ul>
             
-            <button onClick={() => handleOpenAuthModal('register')} className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2">
-              <span>Secure Early Access</span>
-              <Wallet className="h-4 w-4" />
+            <button 
+              onClick={() => {
+                trackClick('button', 'pricing-basic-tier');
+                navigate('/auth');
+              }}
+              className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white px-5 py-3 text-sm font-bold transition hover:opacity-90"
+            >
+              Get Basic
             </button>
+          </div>
+
+          {/* Pro - $99/year (Most Popular) */}
+          <div className="relative rounded-3xl border-2 border-purple-500 bg-slate-950/60 p-8 shadow-[0_0_35px_rgba(168,85,247,0.15)]">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
+              <Crown className="h-3 w-3" />
+              Most Popular
+            </div>
+            
+            <div className="flex items-center gap-2 mb-4">
+              <Crown className="h-5 w-5 text-purple-400" />
+              <h3 className="text-xl font-bold text-white">Pro</h3>
+            </div>
+            <div className="flex items-baseline gap-2 mb-4">
+              <span className="text-4xl font-black text-white">$99</span>
+              <span className="text-sm text-slate-500">/year</span>
+            </div>
+            <p className="text-sm text-slate-400 mb-6">For serious builders shipping multiple AI products.</p>
+            
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="font-semibold">2,000 free tokens/month</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="font-semibold">500GB dataset storage</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="font-semibold">Unlimited AI models</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="font-semibold">24/7 priority support</span>
+              </li>
+            </ul>
+            
+            <button 
+              onClick={() => {
+                trackClick('button', 'pricing-pro-tier');
+                navigate('/auth');
+              }}
+              className="w-full rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white px-5 py-3 text-sm font-bold transition"
+            >
+              Get Pro
+            </button>
+          </div>
+
+          {/* Enterprise */}
+          <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="h-5 w-5 text-emerald-400" />
+              <h3 className="text-xl font-bold text-white">Enterprise</h3>
+            </div>
+            <div className="flex items-baseline gap-2 mb-4">
+              <span className="text-4xl font-black text-white">Custom</span>
+            </div>
+            <p className="text-sm text-slate-400 mb-6">Custom infrastructure for industrial-scale deployment.</p>
+            
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>Dedicated GPU Nodes</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>SLA Guarantees</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>Unlimited Deployments</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm text-slate-200">
+                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span>Dedicated Support</span>
+              </li>
+            </ul>
+            
+            <button 
+              onClick={() => {
+                trackClick('button', 'pricing-enterprise');
+                navigate('/auth');
+              }}
+              className="w-full rounded-2xl bg-white text-black hover:bg-slate-200 px-5 py-3 text-sm font-bold transition"
+            >
+              Contact Sales
+            </button>
+          </div>
+        </div>
+
+        {/* Token Packs Add-on Section */}
+        <div className="mx-auto max-w-3xl mt-16">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-black text-white mb-2">Need More Tokens?</h3>
+            <p className="text-slate-400">Purchase additional tokens for training and deployments</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="rounded-2xl border border-slate-900 bg-slate-950/60 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-xl font-bold text-white">500 Tokens</h4>
+                  <p className="text-xs text-slate-500">For small projects</p>
+                </div>
+                <div className="text-2xl font-black text-white">$9.90</div>
+              </div>
+              <button 
+                onClick={() => {
+                  trackClick('button', 'buy-tokens-500');
+                  navigate('/wallet');
+                }}
+                className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 text-sm font-semibold transition"
+              >
+                Purchase
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-slate-900 bg-slate-950/60 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-xl font-bold text-white">1,500 Tokens</h4>
+                  <p className="text-xs text-slate-500">Best value</p>
+                </div>
+                <div className="text-2xl font-black text-white">$19.90</div>
+              </div>
+              <button 
+                onClick={() => {
+                  trackClick('button', 'buy-tokens-1500');
+                  navigate('/wallet');
+                }}
+                className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-4 py-2 text-sm font-semibold transition"
+              >
+                Purchase
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ============================================ */}
-      {/* FOOTER - FIXED SPACING */}
-      {/* ============================================ */}
+      {/* FOOTER */}
       <footer className="border-t border-slate-900 px-6 py-12">
         <div className="mx-auto max-w-6xl">
-          
-          {/* LOGO */}
           <div className="flex items-center justify-center gap-2 text-white mb-6">
             <img 
-              src="/logo.jpeg" 
+              src="/logo.png" 
               alt="AIGO Logo" 
               className="h-10 w-10 object-contain"
             />
             <span className="text-xl font-black italic">AIGO</span>
           </div>
           
-          {/* TAGLINE */}
           <p className="text-center text-sm text-slate-500 mb-6">Edge AI for founders. Launch your MVP without the enterprise budget.</p>
           
-          {/* FOOTER LINKS */}
           <div className="flex flex-wrap items-center justify-center gap-6 text-xs uppercase tracking-widest text-slate-600 mb-8">
             <button onClick={() => scrollToSection('features')} className="hover:text-slate-400 transition">Features</button>
             <button onClick={() => scrollToSection('pricing')} className="hover:text-slate-400 transition">Pricing</button>
             <button onClick={() => navigate('/marketplace')} className="hover:text-slate-400 transition">Marketplace</button>
             <button onClick={() => navigate('/docs')} className="hover:text-slate-400 transition">Documentation</button>
             <button onClick={() => scrollToSection('creator')} className="hover:text-slate-400 transition">Creators</button>
-            <button onClick={() => handleOpenAuthModal('login')} className="hover:text-slate-400 transition">Contact</button>
+            <button onClick={() => navigate('/contact')} className="hover:text-slate-400 transition">Contact</button>
           </div>
           
-          {/* COPYRIGHT */}
           <p className="text-center text-xs text-slate-600">© 2026 AIGO. Product by AuraSense Limited. Incorporated in Hong Kong.</p>
         </div>
       </footer>

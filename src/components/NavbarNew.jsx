@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-export default function NavbarNew({ onOpenAuthModal }) {
+export default function NavbarNew() {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -27,7 +28,7 @@ export default function NavbarNew({ onOpenAuthModal }) {
       <div className="navbar-content">
         <Link to="/" className="logo">
           <img 
-            src="/logo.jpeg" 
+            src="/logo.png" 
             alt="AIGO Logo" 
             className="logo-img"
           />
@@ -40,11 +41,14 @@ export default function NavbarNew({ onOpenAuthModal }) {
         </div>
 
         <div className="nav-cta">
-          <button onClick={() => onOpenAuthModal('login')} className="btn btn-ghost">
-            Login
+          <button 
+            onClick={() => navigate('/auth')} 
+            className="btn btn-ghost"
+          >
+            Sign In
           </button>
           <button 
-            onClick={() => onOpenAuthModal('register')}
+            onClick={() => navigate('/auth')}
             className="btn btn-primary"
           >
             Get Started
@@ -64,11 +68,20 @@ export default function NavbarNew({ onOpenAuthModal }) {
         <div className="mobile-menu">
           <a onClick={() => scrollToSection('features')}>Features</a>
           <a onClick={() => scrollToSection('pricing')}>Pricing</a>
-          <button onClick={() => { onOpenAuthModal('login'); setIsMenuOpen(false); }} className="btn btn-ghost">
-            Login
+          <button 
+            onClick={() => { 
+              navigate('/auth'); 
+              setIsMenuOpen(false); 
+            }} 
+            className="btn btn-ghost"
+          >
+            Sign In
           </button>
           <button 
-            onClick={() => { onOpenAuthModal('register'); setIsMenuOpen(false); }}
+            onClick={() => { 
+              navigate('/auth'); 
+              setIsMenuOpen(false); 
+            }}
             className="btn btn-primary"
           >
             Get Started

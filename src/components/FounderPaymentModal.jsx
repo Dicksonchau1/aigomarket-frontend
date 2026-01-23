@@ -43,7 +43,7 @@ export default function FounderPaymentModal({ isOpen, onClose }) {
             <span className="text-xs font-bold text-purple-400">SPECIAL OFFER</span>
           </div>
           <h2 className="text-3xl font-black text-white mb-2">
-            🎉 Welcome to AIGO!
+            ?? Welcome to AIGO!
           </h2>
           <p className="text-slate-400">Get started with the Founder Package</p>
         </div>
@@ -104,7 +104,7 @@ export default function FounderPaymentModal({ isOpen, onClose }) {
         </button>
 
         <p className="text-xs text-slate-500 text-center mt-4">
-          Secured by Stripe • SSL Encrypted • 30-day money-back guarantee
+          Secured by Stripe ??SSL Encrypted ??30-day money-back guarantee
         </p>
       </div>
     </div>

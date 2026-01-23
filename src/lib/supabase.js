@@ -1,10 +1,14 @@
+// src/lib/supabase.js
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://cwhthtgynavwinpbjplt.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aHRodGd5bmF2d2lucGJqcGx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzMjE3MTAsImV4cCI6MjA1MTg5NzcxMH0.f_cf7dKkW9fn_wEb-z24-VG3g4ELiHl3hqC77AW-8LQ';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.error('??Missing Supabase environment variables');
+  console.log('URL:', supabaseUrl);
+  console.log('Key:', supabaseAnonKey ? 'EXISTS' : 'MISSING');
+  throw new Error('Missing Supabase configuration');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -13,7 +17,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storage: window.localStorage,
-    storageKey: 'sb-cwhthtgynavwinpbjplt-auth-token',
+    storageKey: 'sb-auth-token',
+    flowType: 'pkce', // ??Added for better security
   },
   realtime: {
     params: {
@@ -22,7 +27,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   db: {
     schema: 'public'
+  },
+  global: {
+    headers: {
+      'x-client-info': 'supabase-js-web'
+    }
   }
+});
+
+// ??Add connection health check
+supabase.auth.getSession().catch(err => {
+  console.warn('?ая? Initial Supabase connection check failed:', err.message);
 });
 
 export default supabase;

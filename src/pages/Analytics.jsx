@@ -1,371 +1,471 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Activity, Users, DollarSign, BarChart3 } from 'lucide-react';
-import { database } from '../services/database';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
+import DashboardLayout from '../components/DashboardLayout';
+import axios from 'axios';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+import {
+  TrendingUp,
+  Users,
+  DollarSign,
+  Activity,
+  Eye,
+  Download,
+  Star,
+  Calendar,
+  RefreshCw,
+  ArrowUp,
+  ArrowDown
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
-function Analytics() {
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+export default function Analytics() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('30'); // days
-  const [analytics, setAnalytics] = useState({
+  const [timeRange, setTimeRange] = useState('7d');
+  const [stats, setStats] = useState({
+    totalViews: 0,
+    totalDownloads: 0,
+    totalRevenue: 0,
+    averageRating: 0,
     totalProjects: 0,
-    totalModels: 0,
-    totalDatasets: 0,
-    tokensUsed: 0,
-    tokensEarned: 0,
-    modelAccuracy: 0,
-    projectsGrowth: 0,
-    modelsGrowth: 0
+    publicProjects: 0,
+    viewsChange: 0,
+    downloadsChange: 0,
+    revenueChange: 0,
+    ratingChange: 0
   });
-
-  const [chartData, setChartData] = useState({
-    projectsOverTime: [],
-    modelsOverTime: [],
-    tokenUsage: []
-  });
+  const [viewsData, setViewsData] = useState([]);
+  const [revenueData, setRevenueData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [topProjects, setTopProjects] = useState([]);
+  const [performanceData, setPerformanceData] = useState([]);
 
   useEffect(() => {
-    loadAnalytics();
-  }, [timeRange]);
+    if (user) {
+      loadAnalytics();
+    }
+  }, [user, timeRange]);
 
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      
-      const [projects, models, datasets, transactions] = await Promise.all([
-        database.projects.getAll(),
-        database.models.getAll(),
-        database.datasets.getAll(),
-        database.wallet.getTransactions()
-      ]);
+      const { data: { session } } = await supabase.auth.getSession();
 
-      // Calculate date threshold
-      const threshold = new Date();
-      threshold.setDate(threshold.getDate() - parseInt(timeRange));
-
-      // Filter by time range
-      const recentProjects = projects.filter(p => new Date(p.created_at) > threshold);
-      const recentModels = models.filter(m => new Date(m.created_at) > threshold);
-      const recentTransactions = transactions.filter(t => new Date(t.created_at) > threshold);
-
-      // Calculate tokens
-      const tokensUsed = recentTransactions
-        .filter(t => t.type === 'debit')
-        .reduce((sum, t) => sum + t.amount, 0);
-      
-      const tokensEarned = recentTransactions
-        .filter(t => t.type === 'credit')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      // Calculate average model accuracy
-      const avgAccuracy = models.length > 0
-        ? models.reduce((sum, m) => sum + (m.accuracy || 0), 0) / models.length
-        : 0;
-
-      // Calculate growth (compare with previous period)
-      const previousThreshold = new Date(threshold);
-      previousThreshold.setDate(previousThreshold.getDate() - parseInt(timeRange));
-      
-      const previousProjects = projects.filter(
-        p => new Date(p.created_at) > previousThreshold && new Date(p.created_at) <= threshold
-      );
-      const previousModels = models.filter(
-        p => new Date(p.created_at) > previousThreshold && new Date(p.created_at) <= threshold
-      );
-
-      const projectsGrowth = previousProjects.length > 0
-        ? ((recentProjects.length - previousProjects.length) / previousProjects.length) * 100
-        : 0;
-      
-      const modelsGrowth = previousModels.length > 0
-        ? ((recentModels.length - previousModels.length) / previousModels.length) * 100
-        : 0;
-
-      setAnalytics({
-        totalProjects: projects.length,
-        totalModels: models.length,
-        totalDatasets: datasets.length,
-        tokensUsed,
-        tokensEarned,
-        modelAccuracy: avgAccuracy,
-        projectsGrowth,
-        modelsGrowth
+      // Fetch analytics from backend
+      const response = await axios.get(`${API_URL}/analytics`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        params: { timeRange }
       });
 
-      // Generate chart data (simplified - group by week)
-      const projectsByWeek = generateTimeSeriesData(recentProjects, parseInt(timeRange));
-      const modelsByWeek = generateTimeSeriesData(recentModels, parseInt(timeRange));
-      
-      setChartData({
-        projectsOverTime: projectsByWeek,
-        modelsOverTime: modelsByWeek,
-        tokenUsage: generateTokenUsageData(recentTransactions, parseInt(timeRange))
-      });
+      if (response.data.success) {
+        const {
+          overview,
+          views_timeline,
+          revenue_timeline,
+          category_distribution,
+          top_projects,
+          performance_metrics
+        } = response.data;
 
-    } catch (err) {
-      console.error('Failed to load analytics:', err);
+        setStats({
+          totalViews: overview.total_views || 0,
+          totalDownloads: overview.total_downloads || 0,
+          totalRevenue: overview.total_revenue || 0,
+          averageRating: overview.average_rating || 0,
+          totalProjects: overview.total_projects || 0,
+          publicProjects: overview.public_projects || 0,
+          viewsChange: overview.views_change || 0,
+          downloadsChange: overview.downloads_change || 0,
+          revenueChange: overview.revenue_change || 0,
+          ratingChange: overview.rating_change || 0
+        });
+
+        setViewsData(views_timeline || []);
+        setRevenueData(revenue_timeline || []);
+        setCategoryData(category_distribution || []);
+        setTopProjects(top_projects || []);
+        setPerformanceData(performance_metrics || []);
+      }
+
+    } catch (error) {
+      console.error('Analytics error:', error);
+      toast.error('Failed to load analytics');
     } finally {
       setLoading(false);
     }
   };
 
-  const generateTimeSeriesData = (items, days) => {
-    const data = [];
-    const now = new Date();
-    const buckets = days > 30 ? 4 : days; // weeks or days
-    
-    for (let i = 0; i < buckets; i++) {
-      const end = new Date(now);
-      end.setDate(now.getDate() - (i * Math.floor(days / buckets)));
-      const start = new Date(end);
-      start.setDate(end.getDate() - Math.floor(days / buckets));
-      
-      const count = items.filter(item => {
-        const date = new Date(item.created_at);
-        return date >= start && date < end;
-      }).length;
-      
-      data.unshift({
-        label: start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        value: count
-      });
-    }
-    
-    return data;
-  };
+  const COLORS = ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1'];
 
-  const generateTokenUsageData = (transactions, days) => {
-    const data = [];
-    const now = new Date();
-    const buckets = Math.min(days, 7);
-    
-    for (let i = 0; i < buckets; i++) {
-      const end = new Date(now);
-      end.setDate(now.getDate() - i);
-      const start = new Date(end);
-      start.setDate(end.getDate() - 1);
-      
-      const used = transactions
-        .filter(t => t.type === 'debit' && new Date(t.created_at) >= start && new Date(t.created_at) < end)
-        .reduce((sum, t) => sum + t.amount, 0);
-      
-      const earned = transactions
-        .filter(t => t.type === 'credit' && new Date(t.created_at) >= start && new Date(t.created_at) < end)
-        .reduce((sum, t) => sum + t.amount, 0);
-      
-      data.unshift({
-        label: start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        used,
-        earned
-      });
-    }
-    
-    return data;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  const StatCard = ({ label, value, icon: Icon, color, change }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-slate-900/50 border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-all"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <Icon className={`text-${color}-400`} size={24} />
+        <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+          change >= 0 
+            ? 'bg-green-500/20 text-green-400' 
+            : 'bg-red-500/20 text-red-400'
+        }`}>
+          {change >= 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+          {Math.abs(change).toFixed(1)}%
+        </span>
       </div>
-    );
-  }
+      <div className="text-3xl font-bold text-white mb-1">{value}</div>
+      <div className="text-sm text-slate-400">{label}</div>
+    </motion.div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Analytics</h1>
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="7">Last 7 Days</option>
-          <option value="30">Last 30 Days</option>
-          <option value="90">Last 90 Days</option>
-        </select>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Projects */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-blue-600" />
+    <DashboardLayout>
+      <div className="min-h-screen bg-[#0f1420] p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          {loading ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <RefreshCw className="w-12 h-12 text-cyan-500 animate-spin mx-auto mb-4" />
+                <p className="text-slate-400 text-lg">Loading analytics...</p>
+              </div>
             </div>
-            {analytics.projectsGrowth !== 0 && (
-              <span className={`text-sm font-medium ${analytics.projectsGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {analytics.projectsGrowth > 0 ? '+' : ''}{analytics.projectsGrowth.toFixed(1)}%
-              </span>
-            )}
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{analytics.totalProjects}</div>
-          <div className="text-sm text-gray-600">Total Projects</div>
-        </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Header */}
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+              >
+                <div>
+                  <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
+                    Analytics Dashboard
+                  </h1>
+                  <p className="text-slate-400 text-lg">
+                    Track your project performance and insights
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="text-slate-400" size={20} />
+                  <select
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500 transition"
+                  >
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="all">All time</option>
+                  </select>
+                  <button
+                    onClick={loadAnalytics}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white rounded-lg transition"
+                    title="Refresh"
+                  >
+                    <RefreshCw size={20} />
+                  </button>
+                </div>
+              </motion.div>
 
-        {/* Total Models */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <Activity className="w-6 h-6 text-green-600" />
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  label="Total Views"
+                  value={stats.totalViews.toLocaleString()}
+                  icon={Eye}
+                  color="cyan"
+                  change={stats.viewsChange}
+                />
+                <StatCard
+                  label="Downloads"
+                  value={stats.totalDownloads.toLocaleString()}
+                  icon={Download}
+                  color="purple"
+                  change={stats.downloadsChange}
+                />
+                <StatCard
+                  label="Revenue"
+                  value={`$${stats.totalRevenue.toLocaleString()}`}
+                  icon={DollarSign}
+                  color="green"
+                  change={stats.revenueChange}
+                />
+                <StatCard
+                  label="Avg Rating"
+                  value={stats.averageRating.toFixed(1)}
+                  icon={Star}
+                  color="yellow"
+                  change={stats.ratingChange}
+                />
+              </div>
+
+              {/* Charts Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Views & Downloads Chart */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="bg-slate-900/50 border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition"
+                >
+                  <div className="flex items-center gap-2 mb-6">
+                    <Activity className="text-cyan-400" size={20} />
+                    <h2 className="text-xl font-bold text-white">Views & Downloads</h2>
+                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={viewsData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                      <YAxis stroke="#94a3b8" fontSize={12} />
+                      <Tooltip
+                        contentStyle={{ 
+                          backgroundColor: '#1e293b', 
+                          border: '1px solid #334155', 
+                          borderRadius: '8px',
+                          color: '#fff'
+                        }}
+                        labelStyle={{ color: '#94a3b8' }}
+                      />
+                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="views" 
+                        stroke="#06b6d4" 
+                        strokeWidth={2}
+                        dot={{ fill: '#06b6d4', r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="downloads" 
+                        stroke="#8b5cf6" 
+                        strokeWidth={2}
+                        dot={{ fill: '#8b5cf6', r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </motion.div>
+
+                {/* Revenue Chart */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="bg-slate-900/50 border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition"
+                >
+                  <div className="flex items-center gap-2 mb-6">
+                    <TrendingUp className="text-green-400" size={20} />
+                    <h2 className="text-xl font-bold text-white">Revenue Trend</h2>
+                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={revenueData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                      <YAxis stroke="#94a3b8" fontSize={12} />
+                      <Tooltip
+                        contentStyle={{ 
+                          backgroundColor: '#1e293b', 
+                          border: '1px solid #334155', 
+                          borderRadius: '8px',
+                          color: '#fff'
+                        }}
+                        labelStyle={{ color: '#94a3b8' }}
+                      />
+                      <Bar 
+                        dataKey="revenue" 
+                        fill="#10b981" 
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </motion.div>
+
+                {/* Category Distribution */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-slate-900/50 border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition"
+                >
+                  <div className="flex items-center gap-2 mb-6">
+                    <Users className="text-purple-400" size={20} />
+                    <h2 className="text-xl font-bold text-white">Projects by Category</h2>
+                  </div>
+                  {categoryData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {categoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ 
+                            backgroundColor: '#1e293b', 
+                            border: '1px solid #334155', 
+                            borderRadius: '8px',
+                            color: '#fff'
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-[300px]">
+                      <p className="text-slate-500">No category data available</p>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Top Projects */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-slate-900/50 border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition"
+                >
+                  <div className="flex items-center gap-2 mb-6">
+                    <Star className="text-yellow-400" size={20} />
+                    <h2 className="text-xl font-bold text-white">Top Performing Projects</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {topProjects.length > 0 ? (
+                      topProjects.map((project, index) => (
+                        <div 
+                          key={project.id} 
+                          className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-white">{project.name}</div>
+                              <div className="text-xs text-slate-400">{project.views || 0} views</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-green-400 font-semibold">${project.revenue || 0}</div>
+                            <div className="text-xs text-slate-400">{project.downloads || 0} downloads</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-slate-500">
+                        No projects data available
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Performance Metrics */}
+              {performanceData.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-slate-900/50 border border-slate-700 rounded-xl p-6"
+                >
+                  <div className="flex items-center gap-2 mb-6">
+                    <Activity className="text-cyan-400" size={20} />
+                    <h2 className="text-xl font-bold text-white">Performance Metrics</h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {performanceData.map((metric, index) => (
+                      <div key={index} className="p-4 bg-slate-800/50 rounded-lg">
+                        <div className="text-sm text-slate-400 mb-1">{metric.label}</div>
+                        <div className="text-2xl font-bold text-white">{metric.value}</div>
+                        {metric.trend && (
+                          <div className={`text-xs flex items-center gap-1 mt-1 ${
+                            metric.trend >= 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {metric.trend >= 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                            {Math.abs(metric.trend)}%
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Summary Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+              >
+                <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">Project Overview</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Total Projects</span>
+                      <span className="text-white font-bold">{stats.totalProjects}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Public Projects</span>
+                      <span className="text-white font-bold">{stats.publicProjects}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Average Rating</span>
+                      <span className="text-yellow-400 font-bold flex items-center gap-1">
+                        <Star size={16} fill="currentColor" />
+                        {stats.averageRating.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">Engagement Metrics</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Total Views</span>
+                      <span className="text-white font-bold">{stats.totalViews.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Total Downloads</span>
+                      <span className="text-white font-bold">{stats.totalDownloads.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Conversion Rate</span>
+                      <span className="text-green-400 font-bold">
+                        {stats.totalViews > 0 
+                          ? ((stats.totalDownloads / stats.totalViews) * 100).toFixed(1)
+                          : 0}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             </div>
-            {analytics.modelsGrowth !== 0 && (
-              <span className={`text-sm font-medium ${analytics.modelsGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {analytics.modelsGrowth > 0 ? '+' : ''}{analytics.modelsGrowth.toFixed(1)}%
-              </span>
-            )}
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{analytics.totalModels}</div>
-          <div className="text-sm text-gray-600">Models Trained</div>
-        </div>
-
-        {/* Tokens Used */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-red-100 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{analytics.tokensUsed}</div>
-          <div className="text-sm text-gray-600">Tokens Used</div>
-        </div>
-
-        {/* Tokens Earned */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{analytics.tokensEarned}</div>
-          <div className="text-sm text-gray-600">Tokens Earned</div>
+          )}
         </div>
       </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Projects Over Time */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">Projects Over Time</h3>
-          <div className="h-64">
-            <SimpleBarChart data={chartData.projectsOverTime} color="#3B82F6" />
-          </div>
-        </div>
-
-        {/* Models Over Time */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">Models Over Time</h3>
-          <div className="h-64">
-            <SimpleBarChart data={chartData.modelsOverTime} color="#10B981" />
-          </div>
-        </div>
-      </div>
-
-      {/* Token Usage Chart */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Token Usage</h3>
-        <div className="h-64">
-          <TokenUsageChart data={chartData.tokenUsage} />
-        </div>
-      </div>
-
-      {/* Model Performance */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mt-6">
-        <h3 className="text-lg font-semibold mb-4">Average Model Accuracy</h3>
-        <div className="flex items-center gap-4">
-          <div className="flex-1 bg-gray-200 rounded-full h-4">
-            <div
-              className="bg-green-600 h-4 rounded-full transition-all duration-500"
-              style={{ width: `${analytics.modelAccuracy}%` }}
-            />
-          </div>
-          <span className="text-2xl font-bold text-gray-900">
-            {analytics.modelAccuracy.toFixed(1)}%
-          </span>
-        </div>
-      </div>
-    </div>
+    </DashboardLayout>
   );
 }
-
-// Simple Bar Chart Component
-function SimpleBarChart({ data, color }) {
-  if (!data || data.length === 0) {
-    return <div className="flex items-center justify-center h-full text-gray-400">No data available</div>;
-  }
-
-  const maxValue = Math.max(...data.map(d => d.value), 1);
-
-  return (
-    <div className="flex items-end justify-between h-full gap-2">
-      {data.map((item, index) => (
-        <div key={index} className="flex-1 flex flex-col items-center gap-2">
-          <div className="w-full flex flex-col justify-end" style={{ height: '200px' }}>
-            <div
-              className="w-full rounded-t transition-all duration-300 hover:opacity-80"
-              style={{
-                backgroundColor: color,
-                height: `${(item.value / maxValue) * 100}%`,
-                minHeight: item.value > 0 ? '4px' : '0px'
-              }}
-            />
-          </div>
-          <div className="text-xs text-gray-600 text-center">{item.label}</div>
-          <div className="text-xs font-semibold">{item.value}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Token Usage Chart Component
-function TokenUsageChart({ data }) {
-  if (!data || data.length === 0) {
-    return <div className="flex items-center justify-center h-full text-gray-400">No data available</div>;
-  }
-
-  const maxValue = Math.max(...data.flatMap(d => [d.used, d.earned]), 1);
-
-  return (
-    <div className="flex items-end justify-between h-full gap-4">
-      {data.map((item, index) => (
-        <div key={index} className="flex-1 flex flex-col items-center gap-2">
-          <div className="w-full flex gap-1 items-end" style={{ height: '200px' }}>
-            <div className="flex-1 flex flex-col justify-end">
-              <div
-                className="w-full bg-red-500 rounded-t transition-all duration-300"
-                style={{
-                  height: `${(item.used / maxValue) * 100}%`,
-                  minHeight: item.used > 0 ? '4px' : '0px'
-                }}
-                title={`Used: ${item.used}`}
-              />
-            </div>
-            <div className="flex-1 flex flex-col justify-end">
-              <div
-                className="w-full bg-green-500 rounded-t transition-all duration-300"
-                style={{
-                  height: `${(item.earned / maxValue) * 100}%`,
-                  minHeight: item.earned > 0 ? '4px' : '0px'
-                }}
-                title={`Earned: ${item.earned}`}
-              />
-            </div>
-          </div>
-          <div className="text-xs text-gray-600 text-center">{item.label}</div>
-        </div>
-      ))}
-      <div className="flex gap-4 text-xs mt-4">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-red-500 rounded" />
-          <span>Used</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-green-500 rounded" />
-          <span>Earned</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default Analytics;

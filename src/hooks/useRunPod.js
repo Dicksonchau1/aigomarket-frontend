@@ -33,7 +33,7 @@ export const useRunPod = () => {
                     
                     if (status.status === 'COMPLETED') {
                         setProgress(100);
-                        addLog('✓ Compression completed successfully');
+                        addLog('??Compression completed successfully');
                         addLog(`Original size: ${status.original_size}`);
                         addLog(`Compressed size: ${status.compressed_size}`);
                         addLog(`Reduction: ${status.reduction_percentage}%`);
@@ -54,7 +54,7 @@ export const useRunPod = () => {
                 return result;
             }
         } catch (error) {
-            addLog(`✗ Error: ${error.message}`);
+            addLog(`??Error: ${error.message}`);
             toast.error('Compression failed: ' + error.message);
             throw error;
         } finally {

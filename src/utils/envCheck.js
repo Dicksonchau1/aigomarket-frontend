@@ -12,7 +12,7 @@ export const checkEnvironment = () => {
         return false;
     }
 
-    console.log('✓ All environment variables loaded');
+    console.log('??All environment variables loaded');
     console.log('Backend URL:', import.meta.env.VITE_API_URL);
     return true;
 };

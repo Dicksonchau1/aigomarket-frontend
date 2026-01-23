@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [chatMessages, setChatMessages] = useState([
     {
       type: 'aigo',
-      content: 'Hey founder! ğŸ‘‹ Drop your idea or upload a sketch. I\'ll analyze and return: Edge AI model, tech stack, algorithms, datasets, and estimated budget.'
+      content: 'Hey founder! ?? Drop your idea or upload a sketch. I\'ll analyze and return: Edge AI model, tech stack, algorithms, datasets, and estimated budget.'
     }
   ]);
   const [userInput, setUserInput] = useState('');
@@ -220,7 +220,7 @@ export default function Dashboard() {
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className={`chat-message ${msg.type}`}>
                       <div className="message-avatar">
-                        {msg.type === 'aigo' ? 'ğŸ¤–' : 'ğŸ‘¤'}
+                        {msg.type === 'aigo' ? '??' : '?‘¤'}
                       </div>
                       <div className="message-content">
                         <p>{msg.content}</p>
@@ -239,7 +239,7 @@ export default function Dashboard() {
                   ))}
                   {isTyping && (
                     <div className="chat-message aigo">
-                      <div className="message-avatar">ğŸ¤–</div>
+                      <div className="message-avatar">??</div>
                       <div className="message-content">
                         <div className="typing-indicator">
                           <span></span><span></span><span></span>
@@ -265,13 +265,13 @@ export default function Dashboard() {
                 <div className="quick-templates">
                   <span>Try:</span>
                   <button onClick={() => setUserInput('Build me a plant detector app')}>
-                    ğŸŒ± Plant detector
+                    ?Œ± Plant detector
                   </button>
                   <button onClick={() => setUserInput('Create a fitness coach AI')}>
-                    ğŸ’ª Fitness coach
+                    ?’ª Fitness coach
                   </button>
                   <button onClick={() => setUserInput('Smart home automation system')}>
-                    ğŸ  Smart home
+                    ?? Smart home
                   </button>
                 </div>
               </div>

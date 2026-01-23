@@ -11,7 +11,7 @@ export const database = {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
@@ -37,7 +37,7 @@ export const database = {
         .from('wallets')
         .select('balance')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data?.balance || 0;
@@ -87,7 +87,7 @@ export const database = {
         .from('projects')
         .insert([{ ...projectData, user_id: user.id }])
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;

@@ -1,166 +1,262 @@
-import React, { Suspense, lazy, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { ErrorBoundary } from 'react-error-boundary';
+import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Context Providers
-import { AuthProvider } from './context/AuthContext';
-import { TokenProvider } from './context/TokenContext';
-import { PaymentProvider } from './context/PaymentContext';
-
-// Components
-import LoadingState from './components/LoadingState';
-import { PaymentErrorBoundary } from './components/PaymentErrorBoundary';
-import ProtectedRoutes from './components/ProtectedRoutes';
-import AuthModal from './components/AuthModal';
+// Public Components
 import NavbarNew from './components/NavbarNew';
+import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
 
-// Pages
+// Public Pages
+import HomeNew from './pages/HomeNew';
+import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
-const HomeNew = lazy(() => import('./pages/HomeNew'));
-const About = lazy(() => import('./pages/About'));
-const Docs = lazy(() => import('./pages/Docs'));
-const Benchmark = lazy(() => import('./pages/Benchmark'));
-const Pricing = lazy(() => import('./pages/Pricing'));
-const FounderPayment = lazy(() => import('./pages/FounderPayment'));
-const PaymentStatusPage = lazy(() => import('./pages/PaymentStatusPage'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Projects = lazy(() => import('./pages/Projects'));
-const CreateProject = lazy(() => import('./pages/CreateProject'));
-const EditProject = lazy(() => import('./pages/EditProject'));
-const Datasets = lazy(() => import('./pages/Datasets'));
-const Models = lazy(() => import('./pages/Models'));
-const Marketplace = lazy(() => import('./pages/Marketplace'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Wallet = lazy(() => import('./pages/Wallet'));
-const Analytics = lazy(() => import('./pages/Analytics'));
-const Support = lazy(() => import('./pages/Support'));
-const NotFound = lazy(() => import('./pages/NotFound'));
+import NotFound from './pages/NotFound';
 
-// Error Fallback UI
-function ErrorFallback({ error, resetErrorBoundary }) {
-  return (
-    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-[#0f172a] border-2 border-red-500/20 rounded-2xl p-8 text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Something went wrong</h2>
-        <p className="text-slate-400 mb-6">{error?.message || 'An unexpected error occurred'}</p>
-        <div className="flex gap-3">
-          <button onClick={resetErrorBoundary} className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition">
-            Try Again
-          </button>
-          <button onClick={() => window.location.href = '/'} className="flex-1 px-6 py-3 bg-cyan-500 text-white rounded-xl hover:bg-cyan-600 transition">
-            Go Home
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Protected Pages
+import Dashboard from './pages/Dashboard';
+import Marketplace from './pages/Marketplace';
+import TrainingQueue from './pages/TrainingQueue';
+import UploadProduct from './pages/UploadProduct';
+import FounderPayment from './pages/FounderPayment';
+import PaymentStatusPage from './pages/PaymentStatusPage';
+import PaymentCancel from './pages/PaymentCancel';
+import Domains from './pages/Domains';
+import Wallet from './pages/Wallet';
+import Profile from './pages/Profile';
+import Support from './pages/Support';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
-/**
- * COMPONENT: AppRoutes
- * Pass the handleOpenAuthModal function down to every page that needs it.
- */
-function AppRoutes({ onOpenAuth }) {
-  return (
-    <Routes>
-      {/* Public Pages - All receive onOpenAuthModal prop */}
-      <Route path="/" element={<HomeNew onOpenAuthModal={onOpenAuth} />} />
-      <Route path="/about" element={<About onOpenAuthModal={onOpenAuth} />} />
-      <Route path="/docs" element={<Docs onOpenAuthModal={onOpenAuth} />} />
-      <Route path="/benchmark" element={<Benchmark onOpenAuthModal={onOpenAuth} />} />
-      <Route path="/pricing" element={<Pricing onOpenAuthModal={onOpenAuth} />} />
-      <Route path="/marketplace" element={<Marketplace onOpenAuthModal={onOpenAuth} />} />
-      <Route path="/support" element={<Support onOpenAuthModal={onOpenAuth} />} />
-
-      {/* Auth callback for Social logins */}
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      
-      {/* Payments */}
-      <Route path="/founder" element={
-        <PaymentErrorBoundary>
-          <FounderPayment />
-        </PaymentErrorBoundary>
-      } />
-      
-      <Route path="/payment/status" element={
-        <PaymentErrorBoundary>
-          <PaymentStatusPage />
-        </PaymentErrorBoundary>
-      } />
-      
-      {/* Dashboard - Protected Layout with Sidebar */}
-      <Route path="/dashboard" element={<ProtectedRoutes />}>
-        <Route index element={<Dashboard />} />
-        <Route path="projects" element={<Projects />} />
-        <Route path="projects/create" element={<CreateProject />} />
-        <Route path="projects/edit/:id" element={<EditProject />} />
-        <Route path="datasets" element={<Datasets />} />
-        <Route path="models" element={<Models />} />
-        <Route path="wallet" element={<Wallet />} />
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="profile" element={<Profile />} />
-      </Route>
-
-      <Route path="/404" element={<NotFound />} />
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
-  );
-}
+// Add these missing imports (if these pages exist):
+import AIGOBot from './pages/AIGOBot';
+import SeedAI from './pages/SeedAI';
+import OneClick from './pages/OneClick';
+;
 
 function App() {
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('signin');
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
+  );
+}
 
-  /**
-   * GLOBAL MODAL HANDLER
-   * This is the function that fixes the "o is not a function" error.
-   */
-  const handleOpenAuthModal = (mode = 'signin') => {
-    setAuthMode(mode);
-    setIsAuthModalOpen(true);
-  };
+function AppContent() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f1420] flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-500 mb-4"></div>
+          <h2 className="text-2xl font-bold text-white">AIGO</h2>
+          <p className="text-slate-400 mt-2">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.href = '/'}>
-      <BrowserRouter>
-        <AuthProvider>
-          <TokenProvider>
-            <PaymentProvider>
-              {/* Navbar - Fixed globally */}
-              <NavbarNew onOpenAuthModal={handleOpenAuthModal} />
+    <div className="min-h-screen bg-[#0f1420] text-white">
+      {/* Show Navbar ONLY on public pages (when user is NOT logged in) */}
+      {!user && <NavbarNew />}
 
-              <Suspense fallback={<LoadingState message="Loading AIGO..." />}>
-                <AppRoutes onOpenAuth={handleOpenAuthModal} />
-              </Suspense>
+      <main className="min-h-screen">
+        <Routes>
+          {/* PUBLIC ROUTES */}
+          <Route 
+            path="/" 
+            element={user ? <Navigate to="/dashboard" replace /> : <HomeNew />} 
+          />
+          
+          <Route 
+            path="/auth" 
+            element={user ? <Navigate to="/dashboard" replace /> : <Auth />} 
+          />
 
-              {/* Global Auth Modal - Only one instance to prevent "Processing" hangs */}
-              <AuthModal 
-                isOpen={isAuthModalOpen} 
-                onClose={() => setIsAuthModalOpen(false)} 
-                initialMode={authMode} 
-              />
+          <Route 
+            path="/auth/callback" 
+            element={<AuthCallback />} 
+          />
 
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#0f172a',
-                    color: '#fff',
-                    border: '1px solid #1e293b',
-                    borderRadius: '12px',
-                    padding: '16px',
-                  },
-                }}
-              />
-            </PaymentProvider>
-          </TokenProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
+          {/* PROTECTED ROUTES - All require authentication */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Marketplace with AIGO Bot */}
+          <Route 
+            path="/marketplace" 
+            element={
+              <ProtectedRoute>
+                <Marketplace />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/aigobot" 
+            element={
+              <ProtectedRoute>
+                <AIGOBot />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Upload & Training */}
+          <Route 
+            path="/upload-product" 
+            element={
+              <ProtectedRoute>
+                <UploadProduct />
+              </ProtectedRoute>
+            } 
+          />
+
+         <Route 
+            path="/training-queue" 
+            element={
+              <ProtectedRoute>
+                <TrainingQueue />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Compression & Export */}
+          <Route 
+            path="/seed-ai" 
+            element={
+              <ProtectedRoute>
+                <SeedAI />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/mobile-export" 
+            element={
+              <ProtectedRoute>
+                <OneClick />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Analytics & Support (NEW) */}
+          <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/support" 
+            element={
+              <ProtectedRoute>
+                <Support />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Wallet, Domains, Settings */}
+          <Route 
+            path="/wallet" 
+            element={
+              <ProtectedRoute>
+                <Wallet />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/domains" 
+            element={
+              <ProtectedRoute>
+                <Domains />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Pricing & Payment */}
+          <Route 
+            path="/founder" 
+            element={
+              <ProtectedRoute>
+                <FounderPayment />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/payment/success" 
+            element={
+              <ProtectedRoute>
+                <PaymentStatusPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/payment/cancel" 
+            element={
+              <ProtectedRoute>
+                <PaymentCancel />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+
+      {/* Show Footer ONLY on public pages */}
+      {!user && <Footer/>}
+
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid #334155',
+          },
+        }}
+      />
+    </div>
   );
 }
 

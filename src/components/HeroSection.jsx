@@ -23,7 +23,7 @@ export default function HeroSection() {
 
           {/* Subheading */}
           <p className="text-lg md:text-xl text-text-secondary max-w-3xl mx-auto mb-10 font-outfit">
-            Upload an idea or sketch. AIGO designs your on-device AI model, tech stack, datasets, and budget â€” ready to deploy on mobile, web, or IoT.
+            Upload an idea or sketch. AIGO designs your on-device AI model, tech stack, datasets, and budget ??ready to deploy on mobile, web, or IoT.
           </p>
 
           {/* CTA Buttons */}
@@ -41,10 +41,10 @@ export default function HeroSection() {
 
         {/* Feature Pills */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-16">
-          <FeaturePill icon="ðŸ¤–" label="50+ Edge AI Models" />
-          <FeaturePill icon="ðŸ“¦" label="90% Compression" />
-          <FeaturePill icon="ðŸ’°" label="From $0/month" />
-          <FeaturePill icon="âš¡" label="Full API Access" />
+          <FeaturePill icon="??" label="50+ Edge AI Models" />
+          <FeaturePill icon="?“¦" label="90% Compression" />
+          <FeaturePill icon="?’°" label="From $0/month" />
+          <FeaturePill icon="?? label="Full API Access" />
         </div>
       </div>
     </section>

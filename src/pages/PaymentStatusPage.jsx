@@ -39,7 +39,7 @@ export default function PaymentStatusPage() {
       
       if (response.success) {
         setStatus('success');
-        toast.success('🎉 Welcome to the Founder tier!');
+        toast.success('?? Welcome to the Founder tier!');
       } else {
         setStatus('error');
         toast.error(response.message || 'Payment verification failed');
@@ -81,7 +81,7 @@ export default function PaymentStatusPage() {
               Payment Successful!
             </h2>
             <p className="text-slate-400 mb-6">
-              Welcome to the Founder tier! 🎉
+              Welcome to the Founder tier! ??
             </p>
             
             <div className="bg-slate-900 rounded-xl p-6 mb-6 space-y-3">

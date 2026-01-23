@@ -3,7 +3,7 @@ export default function HowItWorksSection() {
     {
       number: "1",
       title: "Define Your MVP",
-      description: "Text or sketch → Blueprint with AI models, tech stack, and estimated costs."
+      description: "Text or sketch ??Blueprint with AI models, tech stack, and estimated costs."
     },
     {
       number: "2",
@@ -29,7 +29,7 @@ export default function HowItWorksSection() {
           <h2 className="text-4xl md:text-5xl font-bold font-orbitron mb-4">
             <span className="bg-gradient-primary bg-clip-text text-transparent">How It Works</span>
           </h2>
-          <p className="text-xl text-text-secondary font-outfit">Idea → Production in 4 Steps</p>
+          <p className="text-xl text-text-secondary font-outfit">Idea ??Production in 4 Steps</p>
           <p className="text-text-muted font-outfit">Concept to deployed AI product. Faster than ever.</p>
         </div>
 

@@ -5,6 +5,7 @@ import {
   FileCode, Cpu, HardDrive, Clock, BarChart3, Shield, X, RefreshCw, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import DashboardLayout from '../components/DashboardLayout';
 import { uploadModelForVerification, compressModel } from '../services/api';
 
 export default function SeedAI() {
@@ -192,7 +193,7 @@ export default function SeedAI() {
   const handleDownload = () => {
     if (compressionResult?.download_url && compressionResult.download_url !== '#') {
       window.open(compressionResult.download_url, '_blank');
-      toast.success('✅ Compressed model downloaded! Now upload to marketplace.');
+      toast.success('Compressed model downloaded! Now upload to marketplace.');
     } else {
       // Demo mode - create mock compressed file
       const originalSize = parseFloat(modelInfo.originalSize);
@@ -212,7 +213,7 @@ export default function SeedAI() {
       URL.revokeObjectURL(url);
       
       toast.success(
-        `✅ Compressed model downloaded (${compressedSize.toFixed(1)} MB)!\n\n💡 Now upload this file to the marketplace.`,
+        `Compressed model downloaded (${compressedSize.toFixed(1)} MB)!\n\nNow upload this file to the marketplace.`,
         { duration: 5000 }
       );
       
@@ -223,7 +224,7 @@ export default function SeedAI() {
           'Would you like to upload it to the marketplace now?'
         );
         if (goToUpload) {
-          navigate('/dashboard/upload');
+          navigate('/upload-product');
         }
       }, 2000);
     }
@@ -254,33 +255,35 @@ export default function SeedAI() {
     'text-emerald-400';
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] p-8">
-      <header className="mb-8 text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
+    <DashboardLayout>
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-3">
           <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
             <Zap size={24} className="text-white" />
           </div>
-          <h1 className="text-4xl font-black text-white">Seed AI Compression</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Seed AI Compression</h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Compress AI models by up to <span className="text-cyan-400 font-bold">95%</span> with minimal accuracy loss
+            </p>
+          </div>
         </div>
-        <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-          Compress your AI models by up to <span className="text-cyan-400 font-bold">95%</span> with minimal accuracy loss. 
-          Optimized for Edge devices, mobile, and IoT.
-        </p>
-      </header>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* LEFT COLUMN - UPLOAD & SETTINGS */}
         <div className="space-y-6">
           
           {/* Upload Section */}
-          <div className="bg-[#1a1f2e] border border-slate-800 rounded-2xl p-8">
+          <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">1. Upload Your Model</h2>
+              <h2 className="text-lg font-bold text-white">1. Upload Your Model</h2>
               {selectedFile && (
                 <button
                   onClick={handleRemoveFile}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition text-sm"
                 >
                   <X size={16} />
                   Remove
@@ -292,9 +295,9 @@ export default function SeedAI() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-2xl p-12 text-center transition cursor-pointer relative ${
+              className={`border-2 border-dashed rounded-xl p-10 text-center transition cursor-pointer relative ${
                 isDragging
-                  ? 'border-cyan-500 bg-cyan-500/10 scale-105'
+                  ? 'border-cyan-500 bg-cyan-500/10 scale-[1.02]'
                   : selectedFile
                   ? 'border-emerald-500 bg-emerald-500/5'
                   : 'border-slate-700 hover:border-slate-600 hover:bg-slate-800/50'
@@ -309,28 +312,28 @@ export default function SeedAI() {
                 id="file-upload"
               />
               <label htmlFor="file-upload" className="cursor-pointer">
-                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 transition ${
+                <div className={`w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-3 transition ${
                   selectedFile ? 'bg-emerald-500/20' : 'bg-slate-800'
                 }`}>
                   {isUploading ? (
-                    <Loader2 size={40} className="text-cyan-400 animate-spin" />
+                    <Loader2 size={32} className="text-cyan-400 animate-spin" />
                   ) : selectedFile ? (
-                    <CheckCircle size={40} className="text-emerald-400" />
+                    <CheckCircle size={32} className="text-emerald-400" />
                   ) : (
-                    <Upload size={40} className="text-slate-500" />
+                    <Upload size={32} className="text-slate-500" />
                   )}
                 </div>
                 
-                <h3 className="font-bold text-white mb-2 text-lg">
+                <h3 className="font-bold text-white mb-2">
                   {selectedFile ? modelInfo.fileName : 'Drag & Drop your model'}
                 </h3>
                 
-                <p className="text-sm text-slate-400 mb-4">
+                <p className="text-sm text-slate-400 mb-3">
                   Supports .pt, .pth, .onnx, .tflite, .h5, .pb, .mlmodel (max 500MB)
                 </p>
                 
                 {selectedFile && modelInfo.originalSize && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg mb-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg mb-3">
                     <FileCode size={16} className="text-cyan-400" />
                     <span className="text-sm text-slate-300 font-semibold">
                       {modelInfo.format} • {modelInfo.originalSize} MB
@@ -355,8 +358,8 @@ export default function SeedAI() {
                 )}
                 
                 {!selectedFile && (
-                  <div className="mt-4">
-                    <span className="text-cyan-400 hover:text-cyan-300 font-semibold">
+                  <div className="mt-3">
+                    <span className="text-cyan-400 hover:text-cyan-300 font-semibold text-sm">
                       Browse Files
                     </span>
                   </div>
@@ -366,18 +369,18 @@ export default function SeedAI() {
           </div>
 
           {/* Compression Settings */}
-          <div className="bg-[#1a1f2e] border border-slate-800 rounded-2xl p-8">
-            <h2 className="text-xl font-bold text-white mb-6">2. Compression Settings</h2>
+          <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-6">
+            <h2 className="text-lg font-bold text-white mb-6">2. Compression Settings</h2>
             
             <div className="space-y-6">
               {/* Compression Level Slider */}
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <label className="text-sm font-semibold text-slate-400">Compression Level</label>
+                    <label className="text-sm font-semibold text-slate-300">Compression Level</label>
                     <p className="text-xs text-slate-500 mt-1">{compressionLevelLabel} mode</p>
                   </div>
-                  <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-lg">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg">
                     <Gauge size={18} className={compressionLevelColor} />
                     <span className={`text-2xl font-black ${compressionLevelColor}`}>
                       {compressionLevel}%
@@ -408,7 +411,7 @@ export default function SeedAI() {
 
               {/* Quick Presets */}
               <div>
-                <label className="text-sm font-semibold text-slate-400 mb-3 block">Quick Presets</label>
+                <label className="text-sm font-semibold text-slate-300 mb-3 block">Quick Presets</label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { level: 75, label: 'Safe', color: 'emerald' },
@@ -420,7 +423,11 @@ export default function SeedAI() {
                       onClick={() => setCompressionLevel(preset.level)}
                       className={`px-4 py-3 rounded-xl font-bold transition ${
                         compressionLevel === preset.level
-                          ? `bg-${preset.color}-500 text-white shadow-lg shadow-${preset.color}-500/30`
+                          ? preset.color === 'emerald' 
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                            : preset.color === 'cyan'
+                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                            : 'bg-red-500 text-white shadow-lg shadow-red-500/30'
                           : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                       }`}
                     >
@@ -435,12 +442,12 @@ export default function SeedAI() {
 
               {/* Compression Techniques */}
               <div>
-                <label className="text-sm font-semibold text-slate-400 mb-3 block">
+                <label className="text-sm font-semibold text-slate-300 mb-3 block">
                   Compression Techniques
                 </label>
                 <div className="space-y-2">
                   {Object.entries(selectedTechniques).map(([key, value]) => (
-                    <label key={key} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg cursor-pointer hover:bg-slate-900 transition">
+                    <label key={key} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg cursor-pointer hover:bg-slate-800 transition">
                       <div className="flex items-center gap-3">
                         <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
                           value ? 'bg-cyan-500 border-cyan-500' : 'border-slate-600'
@@ -498,16 +505,16 @@ export default function SeedAI() {
         <div className="space-y-6">
           
           {/* Size Comparison */}
-          <div className="bg-[#1a1f2e] border border-slate-800 rounded-2xl p-8">
-            <h2 className="text-xl font-bold text-white mb-6">Size Comparison</h2>
+          <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-6">
+            <h2 className="text-lg font-bold text-white mb-6">Size Comparison</h2>
             
             <div className="space-y-4">
               {/* Original Size */}
-              <div className="flex items-center justify-between p-5 bg-slate-900/50 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between p-5 bg-slate-800/50 rounded-xl border border-slate-700/50">
                 <div>
                   <p className="text-sm text-slate-400 mb-1">Original Size</p>
                   <p className="text-3xl font-black text-white">
-                    {modelInfo.originalSize ? `${modelInfo.originalSize} MB` : '—'}
+                   {modelInfo.originalSize ? `${modelInfo.originalSize} MB` : '—'}
                   </p>
                 </div>
                 <div className="w-14 h-14 bg-red-500/20 rounded-xl flex items-center justify-center">
@@ -516,7 +523,7 @@ export default function SeedAI() {
               </div>
 
               {/* Estimated Compressed Size */}
-              <div className="flex items-center justify-between p-5 bg-slate-900/50 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between p-5 bg-slate-800/50 rounded-xl border border-slate-700/50">
                 <div>
                   <p className="text-sm text-slate-400 mb-1">Estimated Size</p>
                   <p className="text-3xl font-black text-emerald-400">
@@ -548,14 +555,14 @@ export default function SeedAI() {
 
           {/* Compression Result */}
           {compressionResult && (
-            <div className="bg-[#1a1f2e] border-2 border-emerald-500/50 rounded-2xl p-8 shadow-[0_0_40px_rgba(16,185,129,0.2)] animate-fade-in">
+            <div className="bg-slate-900/50 border-2 border-emerald-500/50 rounded-xl p-6 shadow-[0_0_40px_rgba(16,185,129,0.15)] animate-fade-in">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
                     <CheckCircle size={24} className="text-emerald-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Compression Complete!</h2>
+                    <h2 className="text-lg font-bold text-white">Compression Complete!</h2>
                     <p className="text-sm text-slate-400">Your model is ready to download</p>
                   </div>
                 </div>
@@ -568,7 +575,7 @@ export default function SeedAI() {
                 </button>
               </div>
 
-              <div className="space-y-3 mb-6 p-4 bg-slate-900/50 rounded-xl">
+              <div className="space-y-3 mb-6 p-4 bg-slate-800/50 rounded-xl">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Original Size</span>
                   <span className="font-bold text-white">{compressionResult.original_size}</span>
@@ -581,7 +588,7 @@ export default function SeedAI() {
                   <span className="text-slate-400">Reduction</span>
                   <span className="font-bold text-cyan-400">{compressionResult.reduction}</span>
                 </div>
-                <div className="flex justify-between text-sm border-t border-slate-800 pt-3">
+                <div className="flex justify-between text-sm border-t border-slate-700 pt-3">
                   <span className="text-slate-400">Accuracy Loss</span>
                   <span className="font-bold text-yellow-400">{compressionResult.accuracy_loss}</span>
                 </div>
@@ -617,7 +624,7 @@ export default function SeedAI() {
                       Your compressed model is now small enough to upload to the marketplace!
                     </p>
                     <button
-                      onClick={() => navigate('/dashboard/upload')}
+                      onClick={() => navigate('/upload-product')}
                       className="px-4 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-bold rounded-lg hover:opacity-90 transition text-sm"
                     >
                       Upload to Marketplace →
@@ -629,7 +636,7 @@ export default function SeedAI() {
           )}
 
           {/* Info Box */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 size={20} className="text-cyan-400" />
               <h3 className="font-bold text-white">How It Works</h3>
@@ -664,25 +671,25 @@ export default function SeedAI() {
 
           {/* Performance Stats */}
           {compressionResult && (
-            <div className="bg-[#1a1f2e] border border-slate-800 rounded-2xl p-6">
+            <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Clock size={20} className="text-purple-400" />
                 <h3 className="font-bold text-white">Performance Metrics</h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-slate-900/50 rounded-lg">
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg">
                   <p className="text-xs text-slate-400 mb-1">Compression Time</p>
                   <p className="text-lg font-bold text-white">{compressionResult.compression_time}</p>
                 </div>
-                <div className="text-center p-3 bg-slate-900/50 rounded-lg">
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg">
                   <p className="text-xs text-slate-400 mb-1">Original Accuracy</p>
                   <p className="text-lg font-bold text-white">{compressionResult.original_accuracy}%</p>
                 </div>
-                <div className="text-center p-3 bg-slate-900/50 rounded-lg">
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg">
                   <p className="text-xs text-slate-400 mb-1">New Accuracy</p>
                   <p className="text-lg font-bold text-emerald-400">{compressionResult.compressed_accuracy}%</p>
                 </div>
-                <div className="text-center p-3 bg-slate-900/50 rounded-lg">
+                <div className="text-center p-3 bg-slate-800/50 rounded-lg">
                   <p className="text-xs text-slate-400 mb-1">Quality Score</p>
                   <p className="text-lg font-bold text-cyan-400">A+</p>
                 </div>
@@ -729,6 +736,6 @@ export default function SeedAI() {
           }
         }
       `}</style>
-    </div>
+    </DashboardLayout>
   );
 }

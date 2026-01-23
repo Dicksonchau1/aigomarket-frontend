@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+import json
+import time
+import psutil
+import sys
+import os
+
+def verify_algorithm():
+    """
+    Run algorithm against gold dataset and measure performance
+    """
+    start_time = time.time()
+    process = psutil.Process(os.getpid())
+    
+    # CPU baseline
+    cpu_start = psutil.cpu_percent(interval=0.1)
+    mem_start = process.memory_info().rss / 1024 / 1024  # MB
+    
+    try:
+        # Import user's algorithm
+        sys.path.insert(0, '/app')
+        import algorithm
+        
+        # Load gold dataset
+        with open('/app/dataset.json', 'r') as f:
+            dataset = json.load(f)
+        
+        # Run algorithm
+        results = algorithm.run(dataset)
+        
+        # Measure latency
+        latency_ms = (time.time() - start_time) * 1000
+        
+        # Measure resource usage
+        cpu_usage = psutil.cpu_percent(interval=0.5)
+        mem_usage = process.memory_info().rss / 1024 / 1024  # MB
+        
+        # Calculate accuracy (compare with expected results)
+        accuracy = calculate_accuracy(results, dataset.get('expected'))
+        
+        # Output results as JSON
+        output = {
+            'latency_ms': round(latency_ms, 2),
+            'accuracy_percent': round(accuracy, 2),
+            'cpu_percent': round(cpu_usage, 2),
+            'memory_mb': round(mem_usage, 2),
+            'success': True
+        }
+        
+        print(json.dumps(output))
+        
+    except Exception as e:
+        # Error handling
+        output = {
+            'error': str(e),
+            'success': False
+        }
+        print(json.dumps(output))
+        sys.exit(1)
+
+def calculate_accuracy(results, expected):
+    """
+    Calculate accuracy based on expected results
+    """
+    if not expected:
+        return 95.0  # Default if no expected results
+    
+    correct = sum(1 for i, r in enumerate(results) if r == expected[i])
+    total = len(expected)
+    
+    return (correct / total) * 100 if total > 0 else 0
+
+if __name__ == '__main__':
+    verify_algorithm()

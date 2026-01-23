@@ -1,0 +1,327 @@
+// src/services/railway.service.js - Railway Backend API Calls
+
+import axios from 'axios';
+import RAILWAY_ENDPOINTS, { RAILWAY_CONFIG } from '../config/api';
+
+/**
+ * Create Railway axios client
+ */
+const railwayClient = axios.create(RAILWAY_CONFIG);
+
+/**
+ * Request interceptor - Add auth token
+ */
+railwayClient.interceptors.request.use(
+  (config) => {
+    // Add auth token if available (from Supabase)
+    const token = localStorage.getItem('token') || localStorage.getItem('supabase.auth.token');
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    console.log(`🚀 Railway API: ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('❌ Railway request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Response interceptor - Handle errors
+ */
+railwayClient.interceptors.response.use(
+  (response) => {
+    console.log(`✅ Railway API success: ${response.config.url}`);
+    return response;
+  },
+  (error) => {
+    console.error('❌ Railway API error:', error.response?.data || error.message);
+    
+    // Custom error message
+    const errorMessage = error.response?.data?.error 
+      || error.response?.data?.message 
+      || error.message 
+      || 'Railway API request failed';
+    
+    throw new Error(errorMessage);
+  }
+);
+
+// ============================================
+// RUNPOD AI/ML FUNCTIONS
+// ============================================
+
+/**
+ * Compress Model via RunPod
+ * @param {string} algorithmCode - Model code to compress
+ * @param {string} compressionMethod - Compression method (quantization, pruning, distillation)
+ * @returns {Promise<{job_id: string, status: string}>}
+ */
+export async function compressModelViaRunPod(algorithmCode, compressionMethod = 'quantization') {
+  try {
+    console.log('🗜️ Sending compression job to Railway → RunPod...');
+    console.log(`   Algorithm code length: ${algorithmCode.length} chars`);
+    console.log(`   Compression method: ${compressionMethod}`);
+    
+    const response = await railwayClient.post(RAILWAY_ENDPOINTS.COMPRESS, {
+      algorithm_code: algorithmCode,
+      compression_method: compressionMethod
+    });
+
+    console.log('✅ Compression job submitted:', response.data.job_id);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Compression error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Verify Model via RunPod
+ * @param {string} algorithmCode - Model code to verify
+ * @param {string[]} datasets - Test datasets (default: ['mnist'])
+ * @returns {Promise<{job_id: string, status: string}>}
+ */
+export async function verifyModelViaRunPod(algorithmCode, datasets = ['mnist']) {
+  try {
+    console.log('✔️ Sending verification job to Railway → RunPod...');
+    console.log(`   Algorithm code length: ${algorithmCode.length} chars`);
+    console.log(`   Datasets: ${datasets.join(', ')}`);
+    
+    const response = await railwayClient.post(RAILWAY_ENDPOINTS.VERIFY, {
+      algorithm_code: algorithmCode,
+      datasets
+    });
+
+    console.log('✅ Verification job submitted:', response.data.job_id);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Verification error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check RunPod Job Status
+ * @param {string} jobId - RunPod job ID
+ * @returns {Promise<{status: string, output: any, error: any}>}
+ */
+export async function checkJobStatus(jobId) {
+  try {
+    console.log(`📊 Checking job status: ${jobId}`);
+    
+    const response = await railwayClient.get(RAILWAY_ENDPOINTS.JOB_STATUS(jobId));
+    
+    console.log(`✅ Job ${jobId} status: ${response.data.status}`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Job status error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Poll job status until completion
+ * @param {string} jobId - RunPod job ID
+ * @param {number} maxAttempts - Maximum polling attempts (default: 60)
+ * @param {number} interval - Polling interval in ms (default: 5000)
+ * @returns {Promise<any>}
+ */
+export async function pollJobStatus(jobId, maxAttempts = 60, interval = 5000) {
+  console.log(`🔄 Polling job ${jobId} (max ${maxAttempts} attempts, ${interval}ms interval)`);
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await checkJobStatus(jobId);
+      
+      // Check if job completed
+      if (result.status === 'COMPLETED') {
+        console.log(`✅ Job completed after ${attempt} attempts`);
+        return result.output;
+      }
+      
+      // Check if job failed
+      if (result.status === 'FAILED') {
+        throw new Error(result.error || 'Job failed');
+      }
+      
+      // Still running, wait and retry
+      console.log(`⏳ Attempt ${attempt}/${maxAttempts}: Status = ${result.status}`);
+      await new Promise(resolve => setTimeout(resolve, interval));
+      
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        throw new Error(`Job polling timeout after ${maxAttempts} attempts`);
+      }
+      throw error;
+    }
+  }
+  
+  throw new Error('Job polling timeout');
+}
+
+// ============================================
+// OPENROUTER AI FUNCTIONS
+// ============================================
+
+/**
+ * Send chat message to OpenRouter AI (via Railway)
+ * @param {Array} messages - Chat messages [{role: 'user', content: '...'}]
+ * @param {string} model - AI model name (default: 'openai/gpt-3.5-turbo')
+ * @returns {Promise<{response: string}>}
+ */
+export async function sendAIChat(messages, model = 'openai/gpt-3.5-turbo') {
+  try {
+    console.log('💬 Sending AI chat request to Railway → OpenRouter...');
+    
+    const response = await railwayClient.post(RAILWAY_ENDPOINTS.AI_CHAT, {
+      messages,
+      model
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('❌ AI chat error:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// STRIPE PAYMENT FUNCTIONS
+// ============================================
+
+/**
+ * Create Stripe Checkout Session (via Railway webhook)
+ * @param {string} priceId - Stripe price ID
+ * @param {string} successUrl - Success redirect URL
+ * @param {string} cancelUrl - Cancel redirect URL
+ * @returns {Promise<{sessionId: string, url: string}>}
+ */
+export async function createStripeCheckout(priceId, successUrl, cancelUrl) {
+  try {
+    console.log('💳 Creating Stripe checkout session via Railway...');
+    
+    const response = await railwayClient.post(RAILWAY_ENDPOINTS.STRIPE_CHECKOUT, {
+      priceId,
+      successUrl,
+      cancelUrl
+    });
+    
+    console.log('✅ Stripe checkout session created:', response.data.sessionId);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Stripe checkout error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Verify Stripe Payment Session
+ * @param {string} sessionId - Stripe session ID
+ * @returns {Promise<{verified: boolean, payment: any}>}
+ */
+export async function verifyStripePayment(sessionId) {
+  try {
+    console.log('🔍 Verifying Stripe payment session...');
+    
+    const response = await railwayClient.get(RAILWAY_ENDPOINTS.STRIPE_VERIFY(sessionId));
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ Payment verification error:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// FILE UPLOAD FUNCTIONS (Optional)
+// ============================================
+
+/**
+ * Upload Model via Railway (server-side validation)
+ * @param {FormData} formData - Form data with model file
+ * @returns {Promise<{success: boolean, id: string}>}
+ */
+export async function uploadModelViaRailway(formData) {
+  try {
+    console.log('📤 Uploading model via Railway...');
+    
+    const response = await railwayClient.post(RAILWAY_ENDPOINTS.UPLOAD_MODEL, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    
+    console.log('✅ Model uploaded:', response.data.id);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Model upload error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Upload Dataset via Railway (server-side validation)
+ * @param {FormData} formData - Form data with dataset file
+ * @returns {Promise<{success: boolean, id: string}>}
+ */
+export async function uploadDatasetViaRailway(formData) {
+  try {
+    console.log('📤 Uploading dataset via Railway...');
+    
+    const response = await railwayClient.post(RAILWAY_ENDPOINTS.UPLOAD_DATASET, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    
+    console.log('✅ Dataset uploaded:', response.data.id);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Dataset upload error:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// HEALTH CHECK
+// ============================================
+
+/**
+ * Check Railway backend health
+ * @returns {Promise<{success: boolean, services: object}>}
+ */
+export async function checkRailwayHealth() {
+  try {
+    const response = await railwayClient.get(RAILWAY_ENDPOINTS.HEALTH);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Health check failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// EXPORTS
+// ============================================
+
+export default {
+  // RunPod AI/ML
+  compressModelViaRunPod,
+  verifyModelViaRunPod,
+  checkJobStatus,
+  pollJobStatus,
+  
+  // OpenRouter AI
+  sendAIChat,
+  
+  // Stripe Payments
+  createStripeCheckout,
+  verifyStripePayment,
+  
+  // File Uploads (optional)
+  uploadModelViaRailway,
+  uploadDatasetViaRailway,
+  
+  // Health Check
+  checkRailwayHealth
+};

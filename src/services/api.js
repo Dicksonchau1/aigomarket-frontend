@@ -20,7 +20,7 @@ export async function uploadModelForVerification(formData) {
 
     if (!file) throw new Error('No model file provided');
 
-    console.log('📤 Uploading model:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+    console.log('?�� Uploading model:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
 
     // Upload to Supabase Storage
     const fileName = `${user.id}/${Date.now()}_${file.name}`;
@@ -32,7 +32,7 @@ export async function uploadModelForVerification(formData) {
       });
 
     if (uploadError) {
-      console.error('❌ Storage upload error:', uploadError);
+      console.error('??Storage upload error:', uploadError);
       throw new Error(`Upload failed: ${uploadError.message}`);
     }
 
@@ -41,7 +41,7 @@ export async function uploadModelForVerification(formData) {
       .from('models')
       .getPublicUrl(fileName);
 
-    console.log('✅ File uploaded, creating database record...');
+    console.log('??File uploaded, creating database record...');
 
     // Create database record
     const { data: modelRecord, error: dbError } = await supabase
@@ -58,7 +58,7 @@ export async function uploadModelForVerification(formData) {
           tags: metadata.tags || [],
           version: metadata.version || '1.0.0',
           framework: metadata.framework,
-          model_type: metadata.modelType,
+          type: metadata.modelType || metadata.type || 'ai-model',
           accuracy: metadata.accuracy,
           file_url: publicUrl,
           file_size: file.size,
@@ -70,14 +70,14 @@ export async function uploadModelForVerification(formData) {
         }
       ])
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) {
-      console.error('❌ Database insert error:', dbError);
+      console.error('??Database insert error:', dbError);
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    console.log('✅ Model uploaded successfully:', modelRecord.id);
+    console.log('??Model uploaded successfully:', modelRecord.id);
 
     return {
       success: true,
@@ -87,7 +87,7 @@ export async function uploadModelForVerification(formData) {
     };
 
   } catch (error) {
-    console.error('❌ Upload model error:', error);
+    console.error('??Upload model error:', error);
     throw error;
   }
 }
@@ -106,7 +106,7 @@ export async function uploadDataset(formData) {
 
     if (!file) throw new Error('No file provided');
 
-    console.log('📤 Uploading file:', file.name);
+    console.log('?�� Uploading file:', file.name);
 
     const isDataset = formData.get('dataset');
     const bucket = isDataset ? 'datasets' : 'algorithms';
@@ -148,7 +148,7 @@ export async function uploadDataset(formData) {
         }
       ])
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) throw new Error(`Database error: ${dbError.message}`);
 
@@ -160,7 +160,7 @@ export async function uploadDataset(formData) {
     };
 
   } catch (error) {
-    console.error('❌ Upload error:', error);
+    console.error('??Upload error:', error);
     throw error;
   }
 }
@@ -170,7 +170,7 @@ export async function uploadDataset(formData) {
  */
 export async function compressModel(modelId, compressionLevel) {
   try {
-    console.log('🔄 Compressing model:', modelId, 'Level:', compressionLevel);
+    console.log('?? Compressing model:', modelId, 'Level:', compressionLevel);
     
     await new Promise(resolve => setTimeout(resolve, 3000));
 
@@ -187,11 +187,11 @@ export async function compressModel(modelId, compressionLevel) {
       download_url: '#'
     };
 
-    console.log('✅ Compression complete:', result);
+    console.log('??Compression complete:', result);
     return result;
 
   } catch (error) {
-    console.error('❌ Compression error:', error);
+    console.error('??Compression error:', error);
     throw error;
   }
 }
@@ -203,7 +203,7 @@ export const api_methods = {
     return user;
   },
   getWalletBalance: async () => {
-    const { data } = await supabase.from('wallets').select('*').single();
+    const { data } = await supabase.from('wallets').select('*').maybeSingle();
     return data;
   }
 };

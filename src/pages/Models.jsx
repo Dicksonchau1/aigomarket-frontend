@@ -155,7 +155,7 @@ export default function Models() {
                 <h3 className="text-xl font-bold text-white mb-2">{model.name || 'Untitled Model'}</h3>
                 <p className="text-slate-400 text-sm mb-4">
                   {model.accuracy ? `Accuracy: ${model.accuracy}%` : 'Training in progress'}
-                  {model.size && ` • Size: ${model.size}`}
+                  {model.size && ` ??Size: ${model.size}`}
                 </p>
 
                 <div className="flex items-center justify-between text-xs">
