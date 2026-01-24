@@ -6,7 +6,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Public Components
 import NavbarNew from './components/NavbarNew';
-import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Public Pages
@@ -241,9 +240,6 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-
-      {/* Show Footer ONLY on public pages */}
-      {!user && <Footer/>}
 
       <Toaster 
         position="top-right"
