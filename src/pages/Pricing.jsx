@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Zap, Crown, Rocket, TrendingUp, Star, Sparkles, X } from 'lucide-react';
+import { Check, Zap, Crown, Rocket, Sparkles, X, CheckCircle, Calendar, Award, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { supabase } from '../lib/supabase';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function Pricing() {
   const navigate = useNavigate();
-  const [billingCycle, setBillingCycle] = useState('annual');
+  const [processingCheckout, setProcessingCheckout] = useState(false);
 
   const plans = [
     {
@@ -17,7 +20,7 @@ export default function Pricing() {
       description: 'Get started with basic features',
       color: 'from-slate-500 to-slate-600',
       features: [
-        '3 active projects',
+        '1 active project',
         'Basic AI model training',
         'Community support',
         '1 GB storage',
@@ -27,7 +30,7 @@ export default function Pricing() {
       limitations: [
         'No custom models',
         'Limited API calls',
-        'No priority support',
+        'No creator commission',
         'No team collaboration'
       ],
       cta: 'Get Started Free',
@@ -37,15 +40,15 @@ export default function Pricing() {
       id: 'standard',
       name: 'Standard',
       icon: Crown,
-      price: { annual: 29.90 },
+      price: { annual: 29.99, discounted: 19.99 },
       description: 'Perfect for individual developers',
       color: 'from-cyan-500 to-blue-500',
       features: [
-        '10 active projects',
-        'Advanced AI models',
+        '3 AI models included',
+        '50% creator commission',
+        'Advanced AI model training',
         'Email support',
         '25 GB storage',
-        '80% marketplace commission',
         'Fast training (2x speed)',
         'Custom model architecture',
         'API access (10K calls/month)',
@@ -62,18 +65,18 @@ export default function Pricing() {
       id: 'pro',
       name: 'Professional',
       icon: Rocket,
-      price: { annual: 99.90 },
-      description: 'For teams and advanced use cases',
+      price: { annual: 99.99, discounted: 89.99 },
+      description: 'For teams and power users',
       color: 'from-purple-500 to-pink-500',
       features: [
-        'Unlimited projects',
-        'All AI models & features',
+        '5 AI models included',
+        '95% creator commission',
         'Priority 24/7 support',
+        'White label options',
+        'Full marketing support',
         '100 GB storage',
-        '90% marketplace commission',
         'Ultra-fast training (5x speed)',
         'Unlimited API calls',
-        'White-label options',
         'Custom integrations',
         'Advanced security',
         'Team collaboration (unlimited)',
@@ -87,15 +90,66 @@ export default function Pricing() {
     }
   ];
 
-  const handleSelectPlan = (planId) => {
+  const handleSelectPlan = async (planId) => {
     if (planId === 'free') {
       navigate('/register');
       toast.success('Start with our free plan!');
-    } else {
-      // TODO: Integrate Stripe subscription checkout
-      toast.success(`Redirecting to ${planId} subscription checkout...`);
-      // navigate to Stripe checkout for subscription
+      return;
     }
+
+    try {
+      setProcessingCheckout(true);
+      toast.loading('Redirecting to secure checkout...', { id: 'checkout' });
+
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      
+      if (authError || !session) {
+        toast.error('Please sign in first', { id: 'checkout' });
+        navigate('/auth');
+        setProcessingCheckout(false);
+        return;
+      }
+
+      // Check if launch promo is still valid
+      const PROMO_END_DATE = new Date('2026-02-14');
+      const applyLaunchPromo = new Date() < PROMO_END_DATE;
+
+      const response = await fetch(`${API_URL}/api/checkout/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'subscription',
+          planId: planId,
+          userId: session.user.id,
+          applyLaunchPromo: applyLaunchPromo
+        })
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      toast.success('Redirecting to Stripe...', { id: 'checkout' });
+      window.location.href = data.url;
+
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error(error.message || 'Failed to start checkout', { id: 'checkout' });
+      setProcessingCheckout(false);
+    }
+  };
+
+  const copyPromoCode = () => {
+    navigator.clipboard.writeText('LAUNCH2026');
+    toast.success('✅ Promo code copied!', {
+      icon: '🎉',
+      duration: 2000
+    });
   };
 
   return (
@@ -123,8 +177,105 @@ export default function Pricing() {
         </div>
       </div>
 
+      {/* Launch Promotion Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-7xl mx-auto px-6 -mt-6 mb-8"
+      >
+        <div className="bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 border-2 border-green-500/40 rounded-2xl p-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-600/10 via-emerald-600/10 to-teal-600/10 animate-pulse"></div>
+          
+          <div className="relative text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/30 border border-green-400/50 rounded-full text-green-300 text-sm font-bold mb-4">
+              <Sparkles className="w-4 h-4 animate-spin" />
+              🎉 LAUNCH SPECIAL - ENDS FEB 14, 2026
+            </div>
+            
+            <h2 className="text-5xl font-bold text-white mb-3">
+              Get{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400">
+                $10 OFF
+              </span>{' '}
+              Any Annual Plan!
+            </h2>
+            
+            <div className="flex items-center justify-center gap-8 mb-6">
+              <div className="text-center">
+                <p className="text-slate-400 text-sm mb-1">Standard Plan</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl text-slate-500 line-through">$29.99</span>
+                  <span className="text-4xl font-bold text-green-400">$19.99</span>
+                  <span className="text-slate-400">/year</span>
+                </div>
+              </div>
+              
+              <div className="h-12 w-px bg-slate-700"></div>
+              
+              <div className="text-center">
+                <p className="text-slate-400 text-sm mb-1">Pro Plan</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl text-slate-500 line-through">$99.99</span>
+                  <span className="text-4xl font-bold text-green-400">$89.99</span>
+                  <span className="text-slate-400">/year</span>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-slate-300 text-lg mb-6 max-w-2xl mx-auto">
+              Subscribe now and save <span className="text-green-400 font-bold text-xl">$10</span> on your first year! 
+              Perfect time to unlock all features.
+            </p>
+            
+            {/* Promo Code Box */}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="group px-8 py-5 bg-gradient-to-r from-slate-900 to-slate-800 border-2 border-green-500/50 rounded-2xl hover:border-green-400 transition-all hover:scale-105 cursor-pointer">
+                <p className="text-sm text-slate-400 mb-2 font-medium">💰 Use Promo Code:</p>
+                <code className="text-4xl font-mono font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent tracking-wider">
+                  LAUNCH2026
+                </code>
+              </div>
+              
+              <button
+                onClick={copyPromoCode}
+                className="px-6 py-4 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-400 text-green-300 rounded-xl transition-all hover:scale-105 flex items-center gap-2 font-semibold"
+              >
+                <Copy className="w-5 h-5" />
+                Copy Code
+              </button>
+            </div>
+            
+            {/* Benefits */}
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm mb-6">
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <CheckCircle className="w-4 h-4 text-green-400" />
+                <span className="text-green-300 font-medium">Save $10 instantly</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <Calendar className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-300 font-medium">Valid until Feb 14, 2026</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                <Award className="w-4 h-4 text-purple-400" />
+                <span className="text-purple-300 font-medium">One per customer</span>
+              </div>
+            </div>
+            
+            <div className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-4">
+              <span className="text-2xl">⏰</span>
+              <span className="text-yellow-300 font-semibold">Limited time offer - Don't miss out!</span>
+            </div>
+            
+            <p className="text-xs text-slate-500 max-w-2xl mx-auto">
+              💳 Enter code <code className="text-green-400 font-mono">LAUNCH2026</code> at checkout to claim your discount. 
+              Valid on new subscriptions only.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Pricing Cards */}
-      <div className="max-w-7xl mx-auto px-6 -mt-10 pb-20">
+      <div className="max-w-7xl mx-auto px-6 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {plans.map((plan, index) => {
             const Icon = plan.icon;
@@ -164,28 +315,42 @@ export default function Pricing() {
                       <span className="text-5xl font-bold text-white">Free</span>
                     </div>
                   ) : (
-                    <div className="flex items-baseline">
-                      <span className="text-2xl font-semibold text-slate-400">$</span>
-                      <span className="text-5xl font-bold text-white">{plan.price.annual}</span>
-                      <span className="text-slate-400 ml-2">/year</span>
-                    </div>
-                  )}
-                  {plan.price.annual > 0 && (
-                    <p className="text-sm text-slate-500 mt-2">
-                      ${(plan.price.annual / 12).toFixed(2)}/month when billed annually
-                    </p>
+                    <>
+                      <div className="flex items-baseline justify-center gap-2 mb-2">
+                        <span className="text-2xl font-semibold text-slate-500 line-through">
+                          ${plan.price.annual}
+                        </span>
+                        <span className="px-2 py-1 bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded">
+                          SAVE $10
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-center">
+                        <span className="text-2xl font-semibold text-slate-400">$</span>
+                        <span className="text-5xl font-bold text-white">
+                          {plan.price.discounted.toFixed(2)}
+                        </span>
+                        <span className="text-slate-400 ml-2">/year</span>
+                      </div>
+                      <p className="text-sm text-green-400 mt-2 font-semibold text-center">
+                        with code LAUNCH2026
+                      </p>
+                      <p className="text-sm text-slate-500 mt-2 text-center">
+                        ${(plan.price.discounted / 12).toFixed(2)}/month when billed annually
+                      </p>
+                    </>
                   )}
                 </div>
 
                 <button
                   onClick={() => handleSelectPlan(plan.id)}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition mb-6 ${
+                  disabled={processingCheckout}
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition mb-6 disabled:opacity-50 disabled:cursor-not-allowed ${
                     plan.highlighted
                       ? `bg-gradient-to-r ${plan.color} text-white hover:shadow-lg hover:shadow-cyan-500/30`
                       : 'bg-slate-800 text-white hover:bg-slate-700'
                   }`}
                 >
-                  {plan.cta}
+                  {processingCheckout ? 'Processing...' : plan.cta}
                 </button>
 
                 <div className="space-y-3">
@@ -231,9 +396,17 @@ export default function Pricing() {
               <p className="text-slate-300 text-lg mb-2">
                 Purchase tokens separately to buy AI models, datasets, and algorithms in the marketplace
               </p>
-              <p className="text-yellow-400 text-sm font-semibold">
-                💎 AI Models: 2,000-4,000 tokens • 📚 Datasets: 1,500 tokens • ⚡ Algorithms: 2,500-3,000 tokens
-              </p>
+              <div className="space-y-1">
+                <p className="text-yellow-400 text-sm font-semibold">
+                  💰 Starter Pack: 500 tokens - $9.99
+                </p>
+                <p className="text-yellow-400 text-sm font-semibold">
+                  🔥 Popular Pack: 1,800 tokens (1500 + 300 bonus) - $19.99
+                </p>
+                <p className="text-yellow-400 text-sm font-semibold">
+                  💎 Best Value: 6,000 tokens (5000 + 1000 bonus) - $39.99
+                </p>
+              </div>
             </div>
             <button
               onClick={() => navigate('/wallet')}
@@ -250,6 +423,9 @@ export default function Pricing() {
       <div className="bg-[#1a1f2e] py-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full text-green-400 text-sm font-bold mb-4">
+              💰 Limited Time: $10 OFF with code LAUNCH2026
+            </div>
             <h2 className="text-4xl font-bold text-white mb-4">Detailed Comparison</h2>
             <p className="text-xl text-slate-400">See what's included in each plan</p>
           </div>
@@ -260,21 +436,35 @@ export default function Pricing() {
                 <tr className="border-b border-slate-700">
                   <th className="py-4 px-6 text-slate-400 font-semibold">Feature</th>
                   <th className="py-4 px-6 text-center text-white font-bold">Free</th>
-                  <th className="py-4 px-6 text-center text-white font-bold">Standard</th>
-                  <th className="py-4 px-6 text-center text-white font-bold">Professional</th>
+                  <th className="py-4 px-6 text-center">
+                    <div className="text-white font-bold mb-1">Standard</div>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-sm text-slate-500 line-through">$29.99</span>
+                      <span className="text-lg text-green-400 font-bold">$19.99</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-6 text-center">
+                    <div className="text-white font-bold mb-1">Professional</div>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-sm text-slate-500 line-through">$99.99</span>
+                      <span className="text-lg text-purple-400 font-bold">$89.99</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="text-sm">
                 {[
-                  { name: 'Active Projects', free: '3', standard: '10', pro: 'Unlimited' },
+                  { name: 'Active Projects', free: '1', standard: 'Unlimited', pro: 'Unlimited' },
+                  { name: 'AI Models', free: '0', standard: '3', pro: '5' },
                   { name: 'Storage', free: '1 GB', standard: '25 GB', pro: '100 GB' },
                   { name: 'Training Speed', free: '1x', standard: '2x', pro: '5x' },
                   { name: 'API Calls', free: '1K/mo', standard: '10K/mo', pro: 'Unlimited' },
-                  { name: 'Marketplace Commission', free: '50%', standard: '80%', pro: '90%' },
+                  { name: 'Creator Commission', free: '0%', standard: '50%', pro: '95%' },
                   { name: 'Team Members', free: '1', standard: '3', pro: 'Unlimited' },
                   { name: 'Support', free: 'Community', standard: 'Email', pro: '24/7 Priority' },
                   { name: 'Custom Models', free: '✗', standard: '✓', pro: '✓' },
                   { name: 'White-label', free: '✗', standard: '✗', pro: '✓' },
+                  { name: 'Marketing Support', free: '✗', standard: '✗', pro: '✓' },
                   { name: 'SLA', free: '✗', standard: '✗', pro: '✓' }
                 ].map((row, i) => (
                   <tr key={i} className="border-b border-slate-800">
@@ -304,15 +494,15 @@ export default function Pricing() {
             },
             {
               q: 'Are tokens included in membership?',
-              a: 'No. Membership unlocks platform features. Tokens are purchased separately and used to buy marketplace items (models, datasets, algorithms).'
+              a: 'No. Membership unlocks platform features and AI models. Tokens are purchased separately and used to buy marketplace items (models, datasets, algorithms).'
             },
             {
               q: 'What payment methods do you accept?',
               a: 'We accept all major credit cards and debit cards via Stripe for both memberships and token purchases.'
             },
             {
-              q: 'Is there a free trial for paid plans?',
-              a: 'Yes! All paid membership plans come with a 14-day free trial. No credit card required to start.'
+              q: 'How do I use the LAUNCH2026 promo code?',
+              a: 'Simply enter the code LAUNCH2026 at checkout to get $10 off your first year. The discount is automatically applied and valid until February 14, 2026.'
             },
             {
               q: 'Do you offer refunds?',
@@ -340,7 +530,7 @@ export default function Pricing() {
             Ready to Get Started?
           </h2>
           <p className="text-xl text-slate-300 mb-8">
-            Join thousands of developers building with AIPEX
+            Join thousands of developers building with AIGO
           </p>
           <div className="flex items-center justify-center gap-4">
             <button
@@ -350,7 +540,7 @@ export default function Pricing() {
               Start Free
             </button>
             <button
-              onClick={() => window.location.href = 'mailto:sales@aipex.ai'}
+              onClick={() => window.location.href = 'mailto:sales@aigo.ai'}
               className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition font-bold text-lg"
             >
               Contact Sales
