@@ -1,9 +1,30 @@
-// src/services/api.js - BACKENDLESS VERSION (No Railway, No Axios, Pure Supabase)
+// src/services/api.js - HYBRID VERSION (Supabase + Stripe Backend)
 
 import { supabase } from '../lib/supabase';
+import axios from 'axios';
+
+// Backend API URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://aigomarket-backend-production-8b8d.up.railway.app';
+
+// Create axios instance for backend calls
+const backendAPI = axios.create({
+  baseURL: API_URL + '/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add auth token to backend requests
+backendAPI.interceptors.request.use(async (config) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`;
+  }
+  return config;
+});
 
 // ============================================
-// SUPABASE DIRECT OPERATIONS (No Backend)
+// SUPABASE DIRECT OPERATIONS
 // ============================================
 
 /**
@@ -20,7 +41,7 @@ export async function uploadModelForVerification(formData) {
 
     if (!file) throw new Error('No model file provided');
 
-    console.log('?�� Uploading model:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+    console.log('📤 Uploading model:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
 
     // Upload to Supabase Storage
     const fileName = `${user.id}/${Date.now()}_${file.name}`;
@@ -32,7 +53,7 @@ export async function uploadModelForVerification(formData) {
       });
 
     if (uploadError) {
-      console.error('??Storage upload error:', uploadError);
+      console.error('❌ Storage upload error:', uploadError);
       throw new Error(`Upload failed: ${uploadError.message}`);
     }
 
@@ -41,7 +62,7 @@ export async function uploadModelForVerification(formData) {
       .from('models')
       .getPublicUrl(fileName);
 
-    console.log('??File uploaded, creating database record...');
+    console.log('✅ File uploaded, creating database record...');
 
     // Create database record
     const { data: modelRecord, error: dbError } = await supabase
@@ -73,11 +94,11 @@ export async function uploadModelForVerification(formData) {
       .maybeSingle();
 
     if (dbError) {
-      console.error('??Database insert error:', dbError);
+      console.error('❌ Database insert error:', dbError);
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    console.log('??Model uploaded successfully:', modelRecord.id);
+    console.log('✅ Model uploaded successfully:', modelRecord.id);
 
     return {
       success: true,
@@ -87,7 +108,7 @@ export async function uploadModelForVerification(formData) {
     };
 
   } catch (error) {
-    console.error('??Upload model error:', error);
+    console.error('❌ Upload model error:', error);
     throw error;
   }
 }
@@ -106,7 +127,7 @@ export async function uploadDataset(formData) {
 
     if (!file) throw new Error('No file provided');
 
-    console.log('?�� Uploading file:', file.name);
+    console.log('📤 Uploading file:', file.name);
 
     const isDataset = formData.get('dataset');
     const bucket = isDataset ? 'datasets' : 'algorithms';
@@ -160,7 +181,7 @@ export async function uploadDataset(formData) {
     };
 
   } catch (error) {
-    console.error('??Upload error:', error);
+    console.error('❌ Upload error:', error);
     throw error;
   }
 }
@@ -170,7 +191,7 @@ export async function uploadDataset(formData) {
  */
 export async function compressModel(modelId, compressionLevel) {
   try {
-    console.log('?? Compressing model:', modelId, 'Level:', compressionLevel);
+    console.log('🗜️ Compressing model:', modelId, 'Level:', compressionLevel);
     
     await new Promise(resolve => setTimeout(resolve, 3000));
 
@@ -187,34 +208,195 @@ export async function compressModel(modelId, compressionLevel) {
       download_url: '#'
     };
 
-    console.log('??Compression complete:', result);
+    console.log('✅ Compression complete:', result);
     return result;
 
   } catch (error) {
-    console.error('??Compression error:', error);
+    console.error('❌ Compression error:', error);
     throw error;
   }
 }
 
-// Legacy exports for compatibility (will be removed later)
+// ============================================
+// STRIPE PAYMENT INTEGRATION (NEW)
+// ============================================
+
+/**
+ * Create Stripe Checkout Session for Membership
+ */
+export async function createCheckoutSession(planId) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Please login to continue');
+
+    console.log('💳 Creating checkout session for plan:', planId);
+
+    const response = await backendAPI.post('/stripe/create-checkout-session', {
+      planId: planId
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to create checkout session');
+    }
+
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ Checkout session error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get Wallet Balance
+ */
+export async function getWalletBalance() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('token_balance, subscription_plan, subscription_status')
+      .eq('id', user.id)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      balance: data.token_balance || 0,
+      plan: data.subscription_plan,
+      status: data.subscription_status
+    };
+
+  } catch (error) {
+    console.error('❌ Get wallet balance error:', error);
+    return { balance: 0, plan: null, status: null };
+  }
+}
+
+/**
+ * Get Transaction History
+ */
+export async function getTransactionHistory() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    return data || [];
+
+  } catch (error) {
+    console.error('❌ Get transaction history error:', error);
+    return [];
+  }
+}
+
+/**
+ * Connect Stripe Account (for creators)
+ */
+export async function connectStripeAccount() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Please login to continue');
+
+    const response = await backendAPI.post('/stripe/connect');
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to connect Stripe account');
+    }
+
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ Stripe Connect error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check Stripe Connection Status
+ */
+export async function checkStripeConnection() {
+  try {
+    const response = await backendAPI.get('/stripe/check-connection');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Check connection error:', error);
+    return { connected: false };
+  }
+}
+
+/**
+ * Request Payout
+ */
+export async function requestPayout(amount) {
+  try {
+    const response = await backendAPI.post('/stripe/payout', { amount });
+    
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Payout failed');
+    }
+
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ Payout error:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// LEGACY COMPATIBILITY EXPORTS
+// ============================================
+
 export const api_methods = {
   getUserProfile: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     return user;
   },
-  getWalletBalance: async () => {
-    const { data } = await supabase.from('wallets').select('*').maybeSingle();
-    return data;
-  }
+  getWalletBalance: getWalletBalance
 };
 
 export const paymentAPI = {
-  createCheckoutSession: async (planType) => {
-    throw new Error('Payment system not yet implemented');
-  },
+  createCheckoutSession: createCheckoutSession,
   verifyPayment: async (sessionId) => {
-    throw new Error('Payment system not yet implemented');
-  }
+    // Payment verification happens automatically via webhook
+    return { success: true };
+  },
+  getTransactionHistory: getTransactionHistory,
+  connectStripeAccount: connectStripeAccount,
+  checkStripeConnection: checkStripeConnection,
+  requestPayout: requestPayout
 };
 
-export default { uploadModelForVerification, uploadDataset, compressModel };
+// ============================================
+// DEFAULT EXPORT
+// ============================================
+
+export default {
+  // Upload methods
+  uploadModelForVerification,
+  uploadDataset,
+  compressModel,
+  
+  // Payment methods
+  createCheckoutSession,
+  getWalletBalance,
+  getTransactionHistory,
+  
+  // Stripe Connect methods
+  connectStripeAccount,
+  checkStripeConnection,
+  requestPayout,
+  
+  // Axios instance (for custom calls)
+  backend: backendAPI
+};

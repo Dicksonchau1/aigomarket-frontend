@@ -13,10 +13,10 @@ import HomeNew from './pages/HomeNew';
 import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
-import Pricing from './pages/Pricing'; // ✅ MOVED TO PUBLIC
-
-// ✅ Email Confirmation (PUBLIC - no auth required)
+import Pricing from './pages/Pricing';
 import ConfirmEmail from './pages/ConfirmEmail';
+import PaymentSuccess from './pages/PaymentSuccess'; // ✅ NEW
+import PaymentCancel from './pages/PaymentCancel';
 
 // Protected Pages
 import Dashboard from './pages/Dashboard';
@@ -25,7 +25,6 @@ import TrainingQueue from './pages/TrainingQueue';
 import UploadProduct from './pages/UploadProduct';
 import FounderPayment from './pages/FounderPayment';
 import PaymentStatusPage from './pages/PaymentStatusPage';
-import PaymentCancel from './pages/PaymentCancel';
 import Domains from './pages/Domains';
 import Wallet from './pages/Wallet';
 import Profile from './pages/Profile';
@@ -71,31 +70,57 @@ function AppContent() {
       <main className="min-h-screen">
         <Routes>
           {/* ==================== PUBLIC ROUTES ==================== */}
+          
+          {/* Home */}
           <Route 
             path="/" 
             element={user ? <Navigate to="/dashboard" replace /> : <HomeNew />} 
           />
           
+          {/* Auth */}
           <Route 
             path="/auth" 
             element={user ? <Navigate to="/dashboard" replace /> : <Auth />} 
           />
 
-          {/* ✅ PRICING - PUBLIC (anyone can view) */}
           <Route 
-            path="/pricing" 
-            element={<Pricing />} 
+            path="/auth/callback" 
+            element={<AuthCallback />} 
           />
 
-          {/* ✅ Email Confirmation - PUBLIC (after signup) */}
+          {/* Email Confirmation - PUBLIC */}
           <Route 
             path="/confirm-email" 
             element={<ConfirmEmail />} 
           />
 
+          {/* Pricing - PUBLIC (anyone can view) */}
           <Route 
-            path="/auth/callback" 
-            element={<AuthCallback />} 
+            path="/pricing" 
+            element={<Pricing />} 
+          />
+
+          {/* ✅ Payment Success - PUBLIC (Stripe redirects here) */}
+          <Route 
+            path="/payment-success" 
+            element={<PaymentSuccess />} 
+          />
+
+          {/* Legacy success routes (redirect to new one) */}
+          <Route 
+            path="/success" 
+            element={<Navigate to="/payment-success" replace />} 
+          />
+
+          <Route 
+            path="/payment/success" 
+            element={<Navigate to="/payment-success" replace />} 
+          />
+
+          {/* Payment Cancel - PUBLIC */}
+          <Route 
+            path="/payment/cancel" 
+            element={<PaymentCancel />} 
           />
 
           {/* ==================== PROTECTED ROUTES ==================== */}
@@ -223,7 +248,7 @@ function AppContent() {
             } 
           />
 
-          {/* Pricing & Payment */}
+          {/* Founder Payment - PROTECTED */}
           <Route 
             path="/founder" 
             element={
@@ -233,21 +258,14 @@ function AppContent() {
             } 
           />
 
-          {/* ✅ SUCCESS PAGE - PUBLIC (Stripe redirects here) */}
+          {/* Legacy Payment Status (kept for compatibility) */}
           <Route 
-            path="/success" 
-            element={<PaymentStatusPage />} 
-          />
-
-          <Route 
-            path="/payment/success" 
-            element={<PaymentStatusPage />} 
-          />
-
-          {/* ✅ CANCEL PAGE - PUBLIC */}
-          <Route 
-            path="/payment/cancel" 
-            element={<PaymentCancel />} 
+            path="/payment-status" 
+            element={
+              <ProtectedRoute>
+                <PaymentStatusPage />
+              </ProtectedRoute>
+            } 
           />
 
           {/* 404 Not Found */}
