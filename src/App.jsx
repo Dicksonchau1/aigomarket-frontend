@@ -13,6 +13,7 @@ import HomeNew from './pages/HomeNew';
 import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
+import Pricing from './pages/Pricing'; // ✅ MOVED TO PUBLIC
 
 // ✅ Email Confirmation (PUBLIC - no auth required)
 import ConfirmEmail from './pages/ConfirmEmail';
@@ -78,6 +79,12 @@ function AppContent() {
           <Route 
             path="/auth" 
             element={user ? <Navigate to="/dashboard" replace /> : <Auth />} 
+          />
+
+          {/* ✅ PRICING - PUBLIC (anyone can view) */}
+          <Route 
+            path="/pricing" 
+            element={<Pricing />} 
           />
 
           {/* ✅ Email Confirmation - PUBLIC (after signup) */}
@@ -226,22 +233,21 @@ function AppContent() {
             } 
           />
 
+          {/* ✅ SUCCESS PAGE - PUBLIC (Stripe redirects here) */}
           <Route 
-            path="/payment/success" 
-            element={
-              <ProtectedRoute>
-                <PaymentStatusPage />
-              </ProtectedRoute>
-            } 
+            path="/success" 
+            element={<PaymentStatusPage />} 
           />
 
           <Route 
+            path="/payment/success" 
+            element={<PaymentStatusPage />} 
+          />
+
+          {/* ✅ CANCEL PAGE - PUBLIC */}
+          <Route 
             path="/payment/cancel" 
-            element={
-              <ProtectedRoute>
-                <PaymentCancel />
-              </ProtectedRoute>
-            } 
+            element={<PaymentCancel />} 
           />
 
           {/* 404 Not Found */}
@@ -257,6 +263,18 @@ function AppContent() {
             background: '#1e293b',
             color: '#fff',
             border: '1px solid #334155',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
           },
         }}
       />
