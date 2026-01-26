@@ -61,6 +61,7 @@ export default function Settings() {
     try {
       setLoading(true);
 
+      // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -73,14 +74,9 @@ export default function Settings() {
         setProfile(profileData);
       }
 
-      const { data: subData } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (subData) setSubscription(subData);
+      // ✅ FIXED: Removed subscription query (causing 400 error)
+      // We'll add this back when we create the subscriptions table
+      // For now, subscription will remain null (free tier)
 
     } catch (error) {
       console.error('Error loading settings:', error);
