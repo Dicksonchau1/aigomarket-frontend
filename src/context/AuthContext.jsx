@@ -38,7 +38,6 @@ export const AuthProvider = ({ children }) => {
   // Initialize authentication state
   const initializeAuth = async () => {
     try {
-      // Get current session (safe method)
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -58,13 +57,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign up with email/password
+  // ✅ Sign up with email/password
   const signUp = async (email, password, fullName) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             full_name: fullName,
             display_name: fullName,
@@ -74,9 +74,10 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // Create user profile
+      // ✅ Store email for confirmation page
       if (data.user) {
-        await createUserProfile(data.user, fullName);
+        localStorage.setItem('signup_email', email);
+        localStorage.setItem('signup_name', fullName);
       }
 
       return data;
@@ -86,7 +87,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign in with email/password
+  // ✅ Sign in with email/password
   const signIn = async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -102,7 +103,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign in with Google
+  // ✅ Sign in with Google
   const signInWithGoogle = async () => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -120,7 +121,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign in with GitHub
+  // ✅ Sign in with GitHub
   const signInWithGithub = async () => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -138,77 +139,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign out
+  // ✅ Sign out
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear stored data
+      localStorage.removeItem('signup_email');
+      localStorage.removeItem('signup_name');
       
       setUser(null);
       setSession(null);
     } catch (error) {
       console.error('❌ Sign out error:', error);
       throw error;
-    }
-  };
-
-  // Create user profile in database
-  const createUserProfile = async (user, fullName) => {
-    try {
-      const profileData = {
-        id: user.id,
-        email: user.email,
-        display_name: fullName || user.email?.split('@')[0],
-        avatar_url: user.user_metadata?.avatar_url || null,
-        is_founder: false,
-        created_at: new Date().toISOString(),
-      };
-
-      // Try profiles table first
-      let { error: profileError } = await supabase
-        .from('profiles')
-        .insert([profileData]);
-
-      // Fallback to users table
-      if (profileError && profileError.code === '42P01') {
-        const { error: userError } = await supabase
-          .from('users')
-          .insert([{
-            id: user.id,
-            email: user.email,
-            username: fullName || user.email?.split('@')[0],
-            is_founder: false,
-            created_at: new Date().toISOString(),
-          }]);
-
-        if (userError) console.error('❌ User profile creation error:', userError);
-      } else if (profileError) {
-        console.error('❌ Profile creation error:', profileError);
-      }
-
-      // Create wallet
-      await createUserWallet(user.id);
-    } catch (error) {
-      console.error('❌ Error creating user profile:', error);
-    }
-  };
-
-  // Create user wallet
-  const createUserWallet = async (userId) => {
-    try {
-      const { error } = await supabase
-        .from('wallets')
-        .insert([{
-          user_id: userId,
-          balance: 0,
-          created_at: new Date().toISOString(),
-        }]);
-
-      if (error && error.code !== '23505') { // Ignore duplicate key error
-        console.error('❌ Wallet creation error:', error);
-      }
-    } catch (error) {
-      console.error('❌ Error creating wallet:', error);
     }
   };
 

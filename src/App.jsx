@@ -14,6 +14,9 @@ import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 
+// ✅ Email Confirmation (PUBLIC - no auth required)
+import ConfirmEmail from './pages/ConfirmEmail';
+
 // Protected Pages
 import Dashboard from './pages/Dashboard';
 import Marketplace from './pages/Marketplace';
@@ -28,12 +31,9 @@ import Profile from './pages/Profile';
 import Support from './pages/Support';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
-
-// Add these missing imports (if these pages exist):
 import AIGOBot from './pages/AIGOBot';
 import SeedAI from './pages/SeedAI';
 import OneClick from './pages/OneClick';
-;
 
 function App() {
   return (
@@ -69,7 +69,7 @@ function AppContent() {
 
       <main className="min-h-screen">
         <Routes>
-          {/* PUBLIC ROUTES */}
+          {/* ==================== PUBLIC ROUTES ==================== */}
           <Route 
             path="/" 
             element={user ? <Navigate to="/dashboard" replace /> : <HomeNew />} 
@@ -80,12 +80,20 @@ function AppContent() {
             element={user ? <Navigate to="/dashboard" replace /> : <Auth />} 
           />
 
+          {/* ✅ Email Confirmation - PUBLIC (after signup) */}
+          <Route 
+            path="/confirm-email" 
+            element={<ConfirmEmail />} 
+          />
+
           <Route 
             path="/auth/callback" 
             element={<AuthCallback />} 
           />
 
-          {/* PROTECTED ROUTES - All require authentication */}
+          {/* ==================== PROTECTED ROUTES ==================== */}
+          
+          {/* Dashboard */}
           <Route 
             path="/dashboard" 
             element={
@@ -95,7 +103,7 @@ function AppContent() {
             } 
           />
 
-          {/* Marketplace with AIGO Bot */}
+          {/* Marketplace & AIGO Bot */}
           <Route 
             path="/marketplace" 
             element={
@@ -124,7 +132,7 @@ function AppContent() {
             } 
           />
 
-         <Route 
+          <Route 
             path="/training-queue" 
             element={
               <ProtectedRoute>
@@ -152,7 +160,7 @@ function AppContent() {
             } 
           />
 
-          {/* Analytics & Support (NEW) */}
+          {/* Analytics & Support */}
           <Route 
             path="/analytics" 
             element={
@@ -236,7 +244,7 @@ function AppContent() {
             } 
           />
 
-          {/* 404 */}
+          {/* 404 Not Found */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

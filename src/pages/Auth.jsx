@@ -16,7 +16,7 @@ export default function Auth() {
   const { signIn, signUp, signInWithGoogle, signInWithGithub } = useAuth();
   const navigate = useNavigate();
 
-  // ✅ Email/Password Authentication with Smart Redirect
+  // ✅ Email/Password Authentication
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -31,28 +31,43 @@ export default function Auth() {
         }
         
         // Sign up new user
-        const result = await signUp(email, password, fullName);
-        toast.success('Account created successfully!');
+        await signUp(email, password, fullName);
+        toast.success('Account created! Check your email to confirm.');
         
-        // ✅ NEW USER → Founder Payment
-        navigate('/founder-payment');
+        // ✅ REDIRECT TO EMAIL CONFIRMATION PAGE
+        navigate('/confirm-email');
         
       } else {
         // Sign in existing user
-        const result = await signIn(email, password);
+        await signIn(email, password);
         toast.success('Welcome back!');
         
-        // ✅ EXISTING USER → Dashboard (sign in is always existing user)
+        // ✅ EXISTING USER → Dashboard
         navigate('/dashboard');
       }
     } catch (error) {
       console.error('❌ Auth error:', error);
-      toast.error(error.message || 'Authentication failed');
+      
+      // Better error messages
+      let errorMessage = 'Authentication failed';
+      if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password';
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = 'Please confirm your email address';
+        navigate('/confirm-email');
+      } else if (error.message?.includes('User already registered')) {
+        errorMessage = 'This email is already registered. Please sign in.';
+        setMode('signin');
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
       setLoading(false);
     }
   };
 
-  // Google OAuth
+  // ✅ Google OAuth
   const handleGoogleAuth = async () => {
     setSocialLoading('google');
     try {
@@ -65,7 +80,7 @@ export default function Auth() {
     }
   };
 
-  // GitHub OAuth
+  // ✅ GitHub OAuth
   const handleGithubAuth = async () => {
     setSocialLoading('github');
     try {
@@ -282,6 +297,15 @@ export default function Auth() {
               )}
             </button>
           </div>
+
+          {/* Welcome Bonus (Sign Up Only) */}
+          {mode === 'signup' && (
+            <div className="mt-4 p-3 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 rounded-lg">
+              <p className="text-xs text-center text-yellow-200">
+                🎁 New users receive <span className="font-bold text-yellow-400">100 AIGO tokens</span> as a welcome bonus!
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

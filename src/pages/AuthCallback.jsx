@@ -9,12 +9,12 @@ export default function AuthCallback() {
   const [status, setStatus] = useState('processing'); // processing, success, error
 
   useEffect(() => {
-    handleOAuthCallback();
+    handleAuthCallback();
   }, []);
 
-  const handleOAuthCallback = async () => {
+  const handleAuthCallback = async () => {
     try {
-      console.log('🔄 Processing OAuth callback...');
+      console.log('🔄 Processing auth callback...');
 
       // Get session from URL
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -34,14 +34,18 @@ export default function AuthCallback() {
 
       console.log('✅ Session found:', session.user.email);
 
-      // Check if user profile exists in database
+      // ✅ Check if this is from email confirmation
+      const isEmailConfirmation = window.location.hash.includes('type=signup') || 
+                                   window.location.search.includes('type=signup');
+
+      // Check if user profile exists
       let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle();
 
-      // Fallback to 'users' table if 'profiles' table doesn't exist
+      // Fallback to users table if profiles doesn't exist
       if (profileError && profileError.code === '42P01') {
         console.log('📋 Profiles table not found, trying users table...');
         const result = await supabase
@@ -65,114 +69,49 @@ export default function AuthCallback() {
         const displayName = 
           session.user.user_metadata?.full_name || 
           session.user.user_metadata?.name || 
+          session.user.user_metadata?.display_name ||
           session.user.user_metadata?.username || 
+          localStorage.getItem('signup_name') ||
           email?.split('@')[0] || 
           'User';
 
-        // Create user profile
-        const profileData = {
-          id: session.user.id,
-          email: email,
-          display_name: displayName,
-          avatar_url: session.user.user_metadata?.avatar_url || null,
-          is_founder: false,
-          created_at: new Date().toISOString(),
-        };
+        // Note: Profile and wallet should be auto-created by database trigger
+        // But we can verify/create as fallback
 
-        let { error: createError } = await supabase
-          .from('profiles')
-          .insert([profileData]);
-
-        // Fallback to users table
-        if (createError && createError.code === '42P01') {
-          console.log('📋 Creating in users table instead...');
-          const result = await supabase
-            .from('users')
-            .insert([{
-              id: session.user.id,
-              email: email,
-              username: displayName,
-              is_founder: false,
-              created_at: new Date().toISOString(),
-            }]);
-          
-          createError = result.error;
-        }
-
-        if (createError) {
-          console.error('❌ Profile creation error:', createError);
-        } else {
-          console.log('✅ Profile created successfully');
-        }
-
-        // Create wallet for new user
-        await createUserWallet(session.user.id);
-
-        // Success - redirect to founder payment
+        // Success message
         setStatus('success');
         toast.success('Welcome to AIGO! 🎉');
         
         setTimeout(() => {
           console.log('🚀 Redirecting new user to /founder-payment');
+          // Clear stored signup data
+          localStorage.removeItem('signup_email');
+          localStorage.removeItem('signup_name');
           navigate('/founder-payment');
-        }, 1000);
+        }, 1500);
 
       } else {
-        // Existing user - redirect to dashboard
+        // Existing user
         console.log('👤 Existing user detected');
         setStatus('success');
-        toast.success(`Welcome back, ${profile.display_name || profile.username || 'user'}!`);
+        
+        const userName = profile.display_name || profile.username || 'there';
+        toast.success(`Welcome back, ${userName}!`);
         
         setTimeout(() => {
           console.log('🚀 Redirecting existing user to /dashboard');
           navigate('/dashboard');
-        }, 1000);
+        }, 1500);
       }
 
     } catch (error) {
-      console.error('❌ OAuth callback error:', error);
+      console.error('❌ Auth callback error:', error);
       setStatus('error');
       toast.error('Authentication failed. Please try again.');
       
       setTimeout(() => {
         navigate('/auth');
       }, 2000);
-    }
-  };
-
-  // Create wallet for new user
-  const createUserWallet = async (userId) => {
-    try {
-      console.log('💰 Creating wallet for user...');
-
-      // Check if wallet already exists
-      const { data: existingWallet } = await supabase
-        .from('wallets')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (existingWallet) {
-        console.log('💰 Wallet already exists');
-        return;
-      }
-
-      // Create new wallet
-      const { error } = await supabase
-        .from('wallets')
-        .insert([{
-          user_id: userId,
-          balance: 0,
-          created_at: new Date().toISOString(),
-        }]);
-
-      if (error) {
-        console.error('❌ Wallet creation error:', error);
-      } else {
-        console.log('✅ Wallet created successfully');
-      }
-    } catch (error) {
-      console.error('❌ Error in createUserWallet:', error);
     }
   };
 
@@ -183,7 +122,12 @@ export default function AuthCallback() {
         {/* Processing State */}
         {status === 'processing' && (
           <>
-            <Loader className="w-16 h-16 text-cyan-500 animate-spin mx-auto mb-6" />
+            <div className="relative">
+              <Loader className="w-16 h-16 text-cyan-500 animate-spin mx-auto mb-6" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 border-4 border-cyan-500/20 rounded-full"></div>
+              </div>
+            </div>
             <h2 className="text-2xl font-bold text-white mb-2">Completing Sign In</h2>
             <p className="text-slate-400">Please wait while we set up your account...</p>
             <div className="mt-6 flex justify-center gap-2">
@@ -197,7 +141,7 @@ export default function AuthCallback() {
         {/* Success State */}
         {status === 'success' && (
           <>
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-scale-in">
               <CheckCircle className="w-10 h-10 text-green-500" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Success!</h2>
@@ -217,6 +161,20 @@ export default function AuthCallback() {
         )}
 
       </div>
+
+      <style jsx>{`
+        @keyframes scale-in {
+          from {
+            transform: scale(0);
+          }
+          to {
+            transform: scale(1);
+          }
+        }
+        .animate-scale-in {
+          animation: scale-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
