@@ -216,43 +216,55 @@ export default function Wallet() {
     }
   };
 
-  const handleStripeCheckout = async (packageData) => {
-    if (!packageData) return;
+const handleStripeCheckout = async (packageData) => {
+  if (!packageData) return;
 
-    try {
-      setProcessingPayment(true);
-      toast.loading('Redirecting to secure checkout...', { id: 'checkout' });
+  try {
+    setProcessingPayment(true);
+    setSelectedPackage(packageData);
+    toast.loading('Redirecting to secure checkout...', { id: 'checkout' });
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Call Supabase Edge Function to create Stripe checkout session
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          packageId: packageData.id,
-          packageName: packageData.name,
-          tokens: packageData.tokens + packageData.bonus,
-          price: packageData.price,
-          userId: user.id,
-          type: 'token_purchase'
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
-
-    } catch (error) {
-      console.error('Stripe checkout error:', error);
-      toast.error('Failed to start checkout. Please try again.', { id: 'checkout' });
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    
+    if (authError || !session) {
+      toast.error('Please sign in first', { id: 'checkout' });
       setProcessingPayment(false);
+      return;
     }
-  };
+
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+    const response = await fetch(`${API_URL}/api/checkout/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        type: 'token_purchase',
+        packageId: packageData.id,
+        packageName: packageData.name,
+        tokens: packageData.tokens + packageData.bonus,
+        price: packageData.price,
+        userId: session.user.id
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Checkout failed');
+    }
+
+    toast.success('Redirecting to Stripe...', { id: 'checkout' });
+    window.location.href = data.url;
+
+  } catch (error) {
+    console.error('Checkout error:', error);
+    toast.error(error.message || 'Failed to start checkout', { id: 'checkout' });
+    setProcessingPayment(false);
+  }
+};
 
   const handleWithdraw = async () => {
     try {

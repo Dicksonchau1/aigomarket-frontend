@@ -13,9 +13,8 @@ import {
   Database,
   Zap,
   Smartphone,
-  Globe,
-  TrendingUp,      // ✅ Added for Analytics
-  HelpCircle       // ✅ Added for Support
+  TrendingUp,
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -44,26 +43,25 @@ export default function Sidebar() {
     }
   };
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: ShoppingBag, label: 'Marketplace', badge: 'Hot', path: '/Marketplace' },
-  { icon: Upload, label: 'Upload Projects', path: '/upload-product' },
-  
-  { 
-  icon: Cpu,
-    label: 'Training & Seed',
-    submenu: [
-      { icon: Database, label: 'Training Queue', path: '/training-queue' },
-      { icon: Zap, label: 'Compression', path: '/seed-ai' },
-      { icon: Smartphone, label: 'Mobile Export', path: '/mobile-export' }
-    ]
-  },
-  { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
-  { icon: Wallet, label: 'Wallet', path: '/wallet' },
-  { icon: Globe, label: 'Domains', path: '/domains' },
-  { icon: Settings, label: 'Settings', path: '/settings' }
-];
-
+  const menuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: ShoppingBag, label: 'Marketplace', badge: 'Hot', path: '/marketplace' },
+    { icon: Upload, label: 'Upload Projects', path: '/upload-product' },
+    
+    { 
+      icon: Cpu,
+      label: 'Training & Seed',
+      submenu: [
+        { icon: Database, label: 'Training Queue', path: '/training-queue' },
+        { icon: Zap, label: 'Compression', path: '/seed-ai' },
+        { icon: Smartphone, label: 'Mobile Export', path: '/mobile-export' }
+      ]
+    },
+    { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
+    { icon: Wallet, label: 'Wallet', path: '/wallet' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
+    { icon: HelpCircle, label: 'Support', path: '/support' }
+  ];
 
   const isActive = (path) => location.pathname === path;
   const isParentActive = (submenu) => submenu?.some(item => location.pathname === item.path);
