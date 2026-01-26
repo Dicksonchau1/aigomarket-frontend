@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../config/supabaseClient'; // Import Supabase client
+import { supabase } from '../lib/supabase'; // Import Supabase client
 import { 
   Wallet, 
   Coins, 
