@@ -90,62 +90,27 @@ export default function Pricing() {
     }
   ];
 
+  // ✅ FIXED: Made function async
   const handleSelectPlan = async (planId) => {
-  if (planId === 'free') {
-    navigate('/register');
-    toast.success('Start with our free plan!');
-    return;
-  }
-
-  try {
-    setProcessingCheckout(true);
-    toast.loading('Redirecting to secure checkout...', { id: 'checkout' });
-
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-    
-    if (authError || !session) {
-      toast.error('Please sign in first', { id: 'checkout' });
+    if (planId === 'free') {
       navigate('/auth');
-      setProcessingCheckout(false);
+      toast.success('Start with our free plan!');
       return;
     }
 
-    const PROMO_END_DATE = new Date('2026-02-14');
-    const applyLaunchPromo = new Date() < PROMO_END_DATE;
+    try {
+      setProcessingCheckout(true);
+      toast.loading('Redirecting to secure checkout...', { id: 'checkout' });
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      
+      if (authError || !session) {
+        toast.error('Please sign in first', { id: 'checkout' });
+        navigate('/auth');
+        setProcessingCheckout(false);
+        return;
+      }
 
-    const response = await fetch(`${API_URL}/api/checkout/create-checkout-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        type: 'subscription',
-        planId: planId,
-        userId: session.user.id,
-        applyLaunchPromo: applyLaunchPromo
-      })
-    });
-
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to create checkout session');
-    }
-
-    toast.success('Redirecting to Stripe...', { id: 'checkout' });
-    window.location.href = data.url;
-
-  } catch (error) {
-    console.error('Checkout error:', error);
-    toast.error(error.message || 'Failed to start checkout', { id: 'checkout' });
-    setProcessingCheckout(false);
-  }
-};
-
-      // Check if launch promo is still valid
       const PROMO_END_DATE = new Date('2026-02-14');
       const applyLaunchPromo = new Date() < PROMO_END_DATE;
 
@@ -569,7 +534,7 @@ export default function Pricing() {
           </p>
           <div className="flex items-center justify-center gap-4">
             <button
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/auth')}
               className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-cyan-500/30 transition font-bold text-lg"
             >
               Start Free
