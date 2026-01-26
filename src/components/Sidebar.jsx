@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -17,6 +17,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 export default function Sidebar() {
@@ -24,6 +25,29 @@ export default function Sidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const [expandedMenus, setExpandedMenus] = useState({});
+  const [tokens, setTokens] = useState(0);
+
+  // ✅ Fetch token balance from Supabase
+  useEffect(() => {
+    if (user?.id) {
+      fetchTokenBalance();
+    }
+  }, [user]);
+
+  const fetchTokenBalance = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('tokens')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setTokens(data?.tokens || 0);
+    } catch (error) {
+      console.error('Error fetching tokens:', error);
+    }
+  };
 
   const toggleMenu = (menuName) => {
     setExpandedMenus(prev => ({
@@ -87,7 +111,7 @@ export default function Sidebar() {
       <div className="p-4">
         <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-3">
           <p className="text-xs text-slate-400 mb-1">Available Tokens</p>
-          <p className="text-2xl font-black text-white">0</p>
+          <p className="text-2xl font-black text-white">{tokens.toLocaleString()}</p>
         </div>
       </div>
 
