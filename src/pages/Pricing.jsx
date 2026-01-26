@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Zap, Crown, Rocket, Sparkles, X, CheckCircle, Calendar, Award, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -10,6 +10,21 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export default function Pricing() {
   const navigate = useNavigate();
   const [processingCheckout, setProcessingCheckout] = useState(false);
+
+  // Load Stripe Buy Button script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://js.stripe.com/v3/buy-button.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // Cleanup script on unmount
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
 
   const plans = [
     {
@@ -34,7 +49,8 @@ export default function Pricing() {
         'No team collaboration'
       ],
       cta: 'Get Started Free',
-      highlighted: false
+      highlighted: false,
+      stripeBuyButtonId: null
     },
     {
       id: 'standard',
@@ -59,7 +75,8 @@ export default function Pricing() {
       limitations: [],
       cta: 'Subscribe to Standard',
       highlighted: true,
-      badge: 'Most Popular'
+      badge: 'Most Popular',
+      stripeBuyButtonId: 'buy_btn_1StgABK16GbLKgfGQ8sXM6um'
     },
     {
       id: 'pro',
@@ -86,11 +103,11 @@ export default function Pricing() {
       ],
       limitations: [],
       cta: 'Subscribe to Pro',
-      highlighted: false
+      highlighted: false,
+      stripeBuyButtonId: 'buy_btn_1StgAvK16GbLKgfGNla6RbFX'
     }
   ];
 
-  // ✅ FIXED: Made function async
   const handleSelectPlan = async (planId) => {
     if (planId === 'free') {
       navigate('/auth');
@@ -98,50 +115,11 @@ export default function Pricing() {
       return;
     }
 
-    try {
-      setProcessingCheckout(true);
-      toast.loading('Redirecting to secure checkout...', { id: 'checkout' });
-
-      const { data: { session }, error: authError } = await supabase.auth.getSession();
-      
-      if (authError || !session) {
-        toast.error('Please sign in first', { id: 'checkout' });
-        navigate('/auth');
-        setProcessingCheckout(false);
-        return;
-      }
-
-      const PROMO_END_DATE = new Date('2026-02-14');
-      const applyLaunchPromo = new Date() < PROMO_END_DATE;
-
-      const response = await fetch(`${API_URL}/api/checkout/create-checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          type: 'subscription',
-          planId: planId,
-          userId: session.user.id,
-          applyLaunchPromo: applyLaunchPromo
-        })
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to create checkout session');
-      }
-
-      toast.success('Redirecting to Stripe...', { id: 'checkout' });
-      window.location.href = data.url;
-
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error(error.message || 'Failed to start checkout', { id: 'checkout' });
-      setProcessingCheckout(false);
-    }
+    // For paid plans, the Stripe Buy Button will handle checkout
+    // No custom checkout logic needed
+    toast.success('Click the Subscribe button below to continue', {
+      duration: 3000
+    });
   };
 
   const copyPromoCode = () => {
@@ -341,17 +319,30 @@ export default function Pricing() {
                   )}
                 </div>
 
-                <button
-                  onClick={() => handleSelectPlan(plan.id)}
-                  disabled={processingCheckout}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition mb-6 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    plan.highlighted
-                      ? `bg-gradient-to-r ${plan.color} text-white hover:shadow-lg hover:shadow-cyan-500/30`
-                      : 'bg-slate-800 text-white hover:bg-slate-700'
-                  }`}
-                >
-                  {processingCheckout ? 'Processing...' : plan.cta}
-                </button>
+                {/* Stripe Buy Button or Free Plan Button */}
+                <div className="mb-6">
+                  {plan.stripeBuyButtonId ? (
+                    <div className="flex flex-col items-center">
+                      <stripe-buy-button
+                        buy-button-id={plan.stripeBuyButtonId}
+                        publishable-key="pk_live_51SPFUUK16GbLKgfGpgxz9s42wKYJB9iV0z93I4xZeVEhS7eXa3Ti0lJur9mEEV2gUFETXPozdUA7UEFdh0Yx6Aek00TuxWsJGR"
+                      >
+                      </stripe-buy-button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleSelectPlan(plan.id)}
+                      disabled={processingCheckout}
+                      className={`w-full py-4 rounded-xl font-bold text-lg transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                        plan.highlighted
+                          ? `bg-gradient-to-r ${plan.color} text-white hover:shadow-lg hover:shadow-cyan-500/30`
+                          : 'bg-slate-800 text-white hover:bg-slate-700'
+                      }`}
+                    >
+                      {processingCheckout ? 'Processing...' : plan.cta}
+                    </button>
+                  )}
+                </div>
 
                 <div className="space-y-3">
                   <p className="text-sm font-semibold text-slate-300 mb-3">What's included:</p>
