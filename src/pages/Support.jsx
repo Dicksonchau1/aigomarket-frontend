@@ -4,11 +4,9 @@ import {
   MessageCircle, 
   BookOpen, 
   HelpCircle,
-  CheckCircle,
-  AlertCircle,
   Mail,
   Phone,
-  Clock
+  Building2
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import { supabase } from '../lib/supabase';
@@ -222,57 +220,177 @@ export default function Support() {
                   <h2 className="text-2xl font-bold text-white mb-6">Documentation</h2>
                   
                   <div className="space-y-8">
-                    {[
-                      {
-                        title: 'Getting Started',
-                        links: [
-                          'Quick Start Guide',
-                          'Creating Your First Project',
-                          'Understanding Tokens'
-                        ]
-                      },
-                      {
-                        title: 'Data Preparation',
-                        links: [
-                          'Dataset Format Guidelines',
-                          'Image Labeling Best Practices',
-                          'Data Augmentation Techniques'
-                        ]
-                      },
-                      {
-                        title: 'Model Training',
-                        links: [
-                          'Choosing the Right Architecture',
-                          'Hyperparameter Tuning',
-                          'Evaluating Model Performance'
-                        ]
-                      },
-                      {
-                        title: 'Deployment',
-                        links: [
-                          'Deploying Your Model',
-                          'API Integration Guide',
-                          'Monitoring & Analytics'
-                        ]
-                      }
-                    ].map((section, idx) => (
-                      <div key={idx}>
-                        <h3 className="text-lg font-bold text-white mb-4">{section.title}</h3>
-                        <ul className="space-y-3">
-                          {section.links.map((link, linkIdx) => (
-                            <li key={linkIdx}>
-                              <a
-                                href="#"
-                                className="flex items-center gap-3 p-3 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
-                              >
-                                <BookOpen className="w-5 h-5 text-cyan-400" />
-                                <span className="text-slate-300 group-hover:text-white transition">{link}</span>
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
+                    {/* Getting Started */}
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-4">Getting Started</h3>
+                      <ul className="space-y-3">
+                        <li>
+                          <a
+                            href="#quick-start"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Quick Start Guide</div>
+                              <p className="text-sm text-slate-500">Learn the basics of AIGO platform and create your first Edge AI project in minutes.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#first-project"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Creating Your First Project</div>
+                              <p className="text-sm text-slate-500">Step-by-step tutorial on building your first AI model from idea to deployment.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#tokens"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Understanding Tokens</div>
+                              <p className="text-sm text-slate-500">How tokens work, pricing structure, and tips to optimize your token usage.</p>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Data Preparation */}
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-4">Data Preparation</h3>
+                      <ul className="space-y-3">
+                        <li>
+                          <a
+                            href="#dataset-formats"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Dataset Format Guidelines</div>
+                              <p className="text-sm text-slate-500">Supported formats, file structure requirements, and best practices for organizing datasets.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#image-labeling"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Image Labeling Best Practices</div>
+                              <p className="text-sm text-slate-500">Professional techniques for accurate labeling and annotation to improve model accuracy.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#data-augmentation"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Data Augmentation Techniques</div>
+                              <p className="text-sm text-slate-500">Expand your dataset using rotation, flipping, cropping, and other augmentation methods.</p>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Model Training */}
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-4">Model Training</h3>
+                      <ul className="space-y-3">
+                        <li>
+                          <a
+                            href="#model-selection"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Choosing the Right Architecture</div>
+                              <p className="text-sm text-slate-500">Guide to selecting optimal Edge AI models: YOLO, MobileNet, EfficientNet, and more.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#hyperparameters"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Hyperparameter Tuning</div>
+                              <p className="text-sm text-slate-500">Optimize learning rate, batch size, epochs, and other parameters for peak performance.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#evaluation"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Evaluating Model Performance</div>
+                              <p className="text-sm text-slate-500">Understanding accuracy, precision, recall, F1 score, and interpreting training metrics.</p>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Deployment */}
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-4">Deployment</h3>
+                      <ul className="space-y-3">
+                        <li>
+                          <a
+                            href="#deployment-guide"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Deploying Your Model</div>
+                              <p className="text-sm text-slate-500">Export to iOS, Android, web, and IoT devices. One-click deployment to production.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#api-integration"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">API Integration Guide</div>
+                              <p className="text-sm text-slate-500">Connect your app to AIGO models using REST APIs, SDKs, and webhooks.</p>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#monitoring"
+                            className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition group"
+                          >
+                            <BookOpen className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-slate-200 font-semibold group-hover:text-white transition mb-1">Monitoring & Analytics</div>
+                              <p className="text-sm text-slate-500">Track model performance, user engagement, and optimization opportunities in real-time.</p>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               )}
@@ -303,19 +421,21 @@ export default function Support() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white">Phone</p>
-                      <a href="tel:+1234567890" className="text-sm text-purple-400 hover:underline">
-                        +1 (234) 567-890
+                      <a href="tel:+85234958559" className="text-sm text-purple-400 hover:underline">
+                        +852 3495 8559
                       </a>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Clock className="w-5 h-5 text-emerald-400" />
+                    <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">Business Hours</p>
-                      <p className="text-sm text-slate-400">Mon-Fri, 9AM-6PM EST</p>
+                      <p className="text-sm font-bold text-white">Company</p>
+                      <p className="text-sm text-slate-400">AIGO is a product by</p>
+                      <p className="text-sm text-indigo-400 font-semibold">AuraSense Limited</p>
+                      <p className="text-xs text-slate-500 mt-1">Incorporated in Hong Kong</p>
                     </div>
                   </div>
                 </div>

@@ -14,27 +14,27 @@ export default function AuthCallback() {
 
   const handleAuthCallback = async () => {
     try {
-      console.log('🔄 Processing auth callback...');
+      console.log('?? Processing auth callback...');
 
       // Get session from URL
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.error('❌ Session error:', sessionError);
+        console.error('??Session error:', sessionError);
         throw sessionError;
       }
 
       if (!session) {
-        console.log('⚠️ No session found, redirecting to auth...');
+        console.log('?��? No session found, redirecting to auth...');
         toast.error('Authentication failed. Please try again.');
         setStatus('error');
         setTimeout(() => navigate('/auth'), 2000);
         return;
       }
 
-      console.log('✅ Session found:', session.user.email);
+      console.log('??Session found:', session.user.email);
 
-      // ✅ Check if this is from email confirmation
+      // ??Check if this is from email confirmation
       const isEmailConfirmation = window.location.hash.includes('type=signup') || 
                                    window.location.search.includes('type=signup');
 
@@ -47,7 +47,7 @@ export default function AuthCallback() {
 
       // Fallback to users table if profiles doesn't exist
       if (profileError && profileError.code === '42P01') {
-        console.log('📋 Profiles table not found, trying users table...');
+        console.log('?? Profiles table not found, trying users table...');
         const result = await supabase
           .from('users')
           .select('*')
@@ -62,7 +62,7 @@ export default function AuthCallback() {
       const isNewUser = !profile;
 
       if (isNewUser) {
-        console.log('🆕 New user detected - creating profile...');
+        console.log('?? New user detected - creating profile...');
 
         // Extract user info
         const email = session.user.email;
@@ -80,32 +80,32 @@ export default function AuthCallback() {
 
         // Success message
         setStatus('success');
-        toast.success('Welcome to AIGO! 🎉');
+        toast.success('Welcome to AIGO! ??');
         
         setTimeout(() => {
-          console.log('🚀 Redirecting new user to /founder-payment');
+          console.log('?? Redirecting new user to /pricing');
           // Clear stored signup data
           localStorage.removeItem('signup_email');
           localStorage.removeItem('signup_name');
-          navigate('/founder-payment');
+          navigate('/pricing');
         }, 1500);
 
       } else {
         // Existing user
-        console.log('👤 Existing user detected');
+        console.log('?�� Existing user detected');
         setStatus('success');
         
         const userName = profile.display_name || profile.username || 'there';
         toast.success(`Welcome back, ${userName}!`);
         
         setTimeout(() => {
-          console.log('🚀 Redirecting existing user to /dashboard');
+          console.log('?? Redirecting existing user to /dashboard');
           navigate('/dashboard');
         }, 1500);
       }
 
     } catch (error) {
-      console.error('❌ Auth callback error:', error);
+      console.error('??Auth callback error:', error);
       setStatus('error');
       toast.error('Authentication failed. Please try again.');
       
