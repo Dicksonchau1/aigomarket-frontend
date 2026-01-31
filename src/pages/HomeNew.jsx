@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Bolt, Brain, Check, Database, Globe, Link as LinkIcon, Loader2, MessageCircle, CirclePercent, Rocket, Shield, Smartphone, Sparkles, Upload, ChartColumn, Wallet, ShieldCheck, TrendingUp, Users, Mic, Eye, Layers, Zap, Crown } from 'lucide-react';
+import { ArrowRight, Bolt, Brain, Check, Database, Globe, Link as LinkIcon, Loader2, MessageCircle, CirclePercent, Rocket, Shield, Smartphone, Sparkles, Upload, ChartColumn, Wallet, ShieldCheck, TrendingUp, Users, Mic, Eye, Layers, Zap, Crown, X } from 'lucide-react';
 import NavbarNew from "../components/NavbarNew";
 import { useMLPersonalization } from '../hooks/useMLPersonalization';
 import { useAuth } from '../context/AuthContext';
@@ -226,7 +226,7 @@ function HomeNew() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <NavbarNew />
 
-      {/* REVISED HERO SECTION */}
+      {/* HERO SECTION */}
       <section id="hero" className="hero-section-wrapper">
         {/* Background Elements */}
         <div className="hero-bg-elements">
@@ -263,17 +263,19 @@ function HomeNew() {
           >
             <span className="hero-badge">
               <Sparkles className="h-3 w-3" />
-              <span>Bring your dream from cloud to edge</span>
+              <span>AI-GO: From Clouds to Edge</span>
             </span>
 
             <h1 className="hero-title-3d">
-              <span className="hero-title-line">AIGO provides the foundation</span>
-              <span className="hero-title-line">for building your</span>
-              <span className="hero-title-line bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">on-device intelligence.</span>
+              <span className="hero-title-line">Go from clouds</span>
+              <span className="hero-title-line">to edge.</span>
+              <span className="hero-title-line bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                No code. Low cost.
+              </span>
             </h1>
 
             <p className="hero-subtitle-enhanced">
-              We believe in your talent. So should you.
+              AIGO builds on-device AI. Fast. Private. Yours.
             </p>
 
             <div className="hero-cta-buttons">
@@ -307,8 +309,8 @@ function HomeNew() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
               >
-                <div className="hero-stat-value">2.4K+</div>
-                <div className="hero-stat-label">Active Talents</div>
+                <div className="hero-stat-value">$0</div>
+                <div className="hero-stat-label">Hosting Cost</div>
               </motion.div>
               <motion.div 
                 className="hero-stat"
@@ -316,8 +318,8 @@ function HomeNew() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
               >
-                <div className="hero-stat-value">847</div>
-                <div className="hero-stat-label">AI Models</div>
+                <div className="hero-stat-value">0</div>
+                <div className="hero-stat-label">Code Needed</div>
               </motion.div>
               <motion.div 
                 className="hero-stat"
@@ -325,8 +327,8 @@ function HomeNew() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2 }}
               >
-                <div className="hero-stat-value">94%</div>
-                <div className="hero-stat-label">Match Success</div>
+                <div className="hero-stat-value">90%</div>
+                <div className="hero-stat-label">Smaller</div>
               </motion.div>
             </div>
           </motion.div>
@@ -689,330 +691,409 @@ function HomeNew() {
         </div>
       </section>
 
-{/* REVISED CREATORS SECTION */}
-{/* REVISED CREATORS SECTION */}
-<section id="creator" className="px-6 py-20">
-  <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2">
-    <div>
-      <h2 className="text-4xl font-black text-white mb-4">
-        Become an <span className="text-purple-400">AI Creator</span>
-      </h2>
-      <p className="text-lg text-slate-400 mb-8">
-        We're dedicated to empowering talent—offering <span className="text-white font-semibold">up to 95% commission</span> on every model, dataset, and algorithm you publish.
-      </p>
-      
-      <div className="space-y-5">
-        <div className="flex gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
-            <ChartColumn className="h-5 w-5 text-purple-400" />
-          </div>
+      {/* CREATORS SECTION */}
+      <section id="creator" className="px-6 py-20">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2">
           <div>
-            <h4 className="text-base font-bold text-white">Real-Time Analytics</h4>
-            <p className="text-sm text-slate-400">Track downloads, usage, and earnings</p>
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
-            <ShieldCheck className="h-5 w-5 text-purple-400" />
-          </div>
-          <div>
-            <h4 className="text-base font-bold text-white">IP Protection</h4>
-            <p className="text-sm text-slate-400">Your models are encrypted and secured</p>
-          </div>
-        </div>
-      </div>
-
-      <button 
-        onClick={() => {
-          trackClick('button', 'start-publishing');
-          navigate('/auth');
-        }}
-        className="mt-8 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
-      >
-        Start Publishing
-      </button>
-    </div>
-
-    <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-cyan-500">
-            JC
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white">James Chen</p>
-            <p className="text-xs text-slate-500">Vision Model Creator</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-500">This Month</p>
-          <p className="font-mono text-sm font-bold text-white">$2,847</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-purple-500">
-            SK
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white">Sarah Kim</p>
-            <p className="text-xs text-slate-500">NLP Specialist</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-500">This Month</p>
-          <p className="font-mono text-sm font-bold text-white">$1,923</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-emerald-500">
-            MP
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white">Mike Park</p>
-            <p className="text-xs text-slate-500">Audio AI Expert</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-500">This Month</p>
-          <p className="font-mono text-sm font-bold text-white">$3,156</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-      {/* REVISED PRICING SECTION - ANNUAL POWER PASS */}
-      <section id="pricing" className="px-6 py-20">
-        <div className="mx-auto max-w-5xl text-center mb-12">
-          <h2 className="text-4xl font-black text-white mb-2">Annual Power Pass</h2>
-          <p className="text-lg text-slate-400">Unlock full platform access. Build unlimited AI products.</p>
-          <p className="text-sm text-slate-500 mt-2">Simple pricing. No hidden fees.</p>
-        </div>
-
-        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2 lg:grid-cols-4">
-          
-          {/* Free Tier */}
-          <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap className="h-5 w-5 text-slate-400" />
-              <h3 className="text-xl font-bold text-white">Free</h3>
-            </div>
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-black text-white">$0</span>
-              <span className="text-sm text-slate-500">/forever</span>
-            </div>
-            <p className="text-sm text-slate-400 mb-6">For solo founders validating their first Edge AI MVP.</p>
+            <h2 className="text-4xl font-black text-white mb-4">
+              Become an <span className="text-purple-400">AI Creator</span>
+            </h2>
+            <p className="text-lg text-slate-400 mb-8">
+              We're dedicated to empowering talent—offering <span className="text-white font-semibold">up to 95% commission</span> on every model, dataset, and algorithm you publish.
+            </p>
             
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Platform access</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>5 Gold Datasets</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Community support</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Basic Pitch Video</span>
-              </li>
-            </ul>
-            
+            <div className="space-y-5">
+              <div className="flex gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
+                  <ChartColumn className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">Real-Time Analytics</h4>
+                  <p className="text-sm text-slate-400">Track downloads, usage, and earnings</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10">
+                  <ShieldCheck className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">IP Protection</h4>
+                  <p className="text-sm text-slate-400">Your models are encrypted and secured</p>
+                </div>
+              </div>
+            </div>
+
             <button 
               onClick={() => {
-                trackClick('button', 'pricing-free-tier');
+                trackClick('button', 'start-publishing');
                 navigate('/auth');
               }}
-              className="w-full rounded-2xl border border-slate-800 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-900"
+              className="mt-8 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
             >
-              Start Building
+              Start Publishing
             </button>
           </div>
 
-          {/* Basic - $29/year */}
-          <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Rocket className="h-5 w-5 text-cyan-400" />
-              <h3 className="text-xl font-bold text-white">Basic</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-cyan-500">
+                  JC
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">James Chen</p>
+                  <p className="text-xs text-slate-500">Vision Model Creator</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">This Month</p>
+                <p className="font-mono text-sm font-bold text-white">$2,847</p>
+              </div>
             </div>
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-black text-white">$29</span>
-              <span className="text-sm text-slate-500">/year</span>
+
+            <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-purple-500">
+                  SK
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">Sarah Kim</p>
+                  <p className="text-xs text-slate-500">NLP Specialist</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">This Month</p>
+                <p className="font-mono text-sm font-bold text-white">$1,923</p>
+              </div>
             </div>
-            <p className="text-sm text-slate-400 mb-6">Everything to launch your first AI product.</p>
-            
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>500 free tokens/month</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>50GB dataset storage</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>10 AI models</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Priority email support</span>
-              </li>
-            </ul>
-            
-            <button 
-              onClick={() => {
-                trackClick('button', 'pricing-basic-tier');
-                navigate('/auth');
-              }}
-              className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white px-5 py-3 text-sm font-bold transition hover:opacity-90"
+
+            <div className="flex items-center justify-between rounded-2xl border border-slate-900 bg-slate-950/70 px-5 py-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-white bg-emerald-500">
+                  MP
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">Mike Park</p>
+                  <p className="text-xs text-slate-500">Audio AI Expert</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">This Month</p>
+                <p className="font-mono text-sm font-bold text-white">$3,156</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* COMPLETELY REDESIGNED PRICING SECTION */}
+      <section id="pricing" className="relative px-6 py-32 overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
+          <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl">
+          {/* Header */}
+          <div className="text-center mb-20">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/20 rounded-full px-6 py-2 mb-6"
             >
-              Get Basic
-            </button>
+              <Sparkles className="h-4 w-4 text-purple-400" />
+              <span className="text-sm font-bold text-purple-300 uppercase tracking-wider">Simple Pricing</span>
+            </motion.div>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-5xl md:text-6xl font-black text-white mb-6"
+            >
+              Build Unlimited AI Products
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-xl text-slate-400 max-w-3xl mx-auto"
+            >
+              One annual pass. Full platform access. Zero hidden fees.
+            </motion.p>
           </div>
 
-          {/* Pro - $99/year (Most Popular) */}
-          <div className="relative rounded-3xl border-2 border-purple-500 bg-slate-950/60 p-8 shadow-[0_0_35px_rgba(168,85,247,0.15)]">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
-              <Crown className="h-3 w-3" />
-              Most Popular
-            </div>
+          {/* Pricing Cards Grid */}
+          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
             
-            <div className="flex items-center gap-2 mb-4">
-              <Crown className="h-5 w-5 text-purple-400" />
-              <h3 className="text-xl font-bold text-white">Pro</h3>
-            </div>
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-black text-white">$99</span>
-              <span className="text-sm text-slate-500">/year</span>
-            </div>
-            <p className="text-sm text-slate-400 mb-6">For serious builders shipping multiple AI products.</p>
-            
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span className="font-semibold">2,000 free tokens/month</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span className="font-semibold">500GB dataset storage</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span className="font-semibold">Unlimited AI models</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span className="font-semibold">24/7 priority support</span>
-              </li>
-            </ul>
-            
-            <button 
-              onClick={() => {
-                trackClick('button', 'pricing-pro-tier');
-                navigate('/auth');
-              }}
-              className="w-full rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white px-5 py-3 text-sm font-bold transition"
+            {/* FREE TIER */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="relative rounded-3xl border-2 border-slate-800 bg-slate-900/50 backdrop-blur p-8 hover:border-slate-700 transition-all duration-300"
             >
-              Get Pro
-            </button>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800">
+                  <Zap className="h-6 w-6 text-slate-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Free</h3>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Forever</p>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-5xl font-black text-white">$0</span>
+                </div>
+                <p className="text-sm text-slate-400">Perfect for validating your first Edge AI idea</p>
+              </div>
+
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">Platform access</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">5 Gold Datasets</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">Community support</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">Basic pitch video export</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <X className="h-5 w-5 text-slate-600 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-600">No free tokens</span>
+                </li>
+              </ul>
+
+              <button
+                onClick={() => {
+                  trackClick('button', 'pricing-free');
+                  navigate('/auth');
+                }}
+                className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 transition-all duration-300"
+              >
+                Start Building Free
+              </button>
+            </motion.div>
+
+            {/* PRO TIER - MOST POPULAR */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="relative rounded-3xl border-2 border-purple-500 bg-gradient-to-b from-purple-500/10 to-slate-900/50 backdrop-blur p-8 shadow-2xl shadow-purple-500/20 transform scale-105"
+            >
+              {/* Popular Badge */}
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-2 rounded-full shadow-lg">
+                <Crown className="h-4 w-4 text-white" />
+                <span className="text-sm font-black text-white uppercase tracking-wider">Most Popular</span>
+              </div>
+
+              <div className="flex items-center gap-3 mb-6 mt-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
+                  <Crown className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Pro</h3>
+                  <p className="text-xs text-purple-300 uppercase tracking-wider">Annual Power Pass</p>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-5xl font-black bg-gradient-to-r from-purple-300 to-cyan-300 bg-clip-text text-transparent">$99</span>
+                  <span className="text-lg text-slate-400">/year</span>
+                </div>
+                <p className="text-sm text-slate-300">For serious builders shipping multiple AI products</p>
+              </div>
+
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-white font-semibold">2,000 free tokens/month</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-white font-semibold">500GB dataset storage</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-white font-semibold">Unlimited AI models</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-white font-semibold">Priority support 24/7</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-white font-semibold">Advanced analytics</span>
+                </li>
+              </ul>
+
+              <button
+                onClick={() => {
+                  trackClick('button', 'pricing-pro');
+                  navigate('/pricing');
+                }}
+                className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black py-4 transition-all duration-300 shadow-lg shadow-purple-500/30"
+              >
+                Get Pro Access
+              </button>
+
+              <p className="text-center text-xs text-slate-400 mt-4">
+                Save $138/year vs monthly billing
+              </p>
+            </motion.div>
+
+            {/* ENTERPRISE TIER */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="relative rounded-3xl border-2 border-slate-800 bg-slate-900/50 backdrop-blur p-8 hover:border-slate-700 transition-all duration-300"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-800">
+                  <Shield className="h-6 w-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Enterprise</h3>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Custom</p>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-5xl font-black text-white">Custom</span>
+                </div>
+                <p className="text-sm text-slate-400">Industrial-scale AI deployment infrastructure</p>
+              </div>
+
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">Dedicated GPU nodes</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">99.9% SLA guarantee</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">Unlimited deployments</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">Dedicated account manager</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="text-sm text-slate-300">Custom integrations</span>
+                </li>
+              </ul>
+
+              <button
+                onClick={() => {
+                  trackClick('button', 'pricing-enterprise');
+                  navigate('/contact');
+                }}
+                className="w-full rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold py-4 transition-all duration-300"
+              >
+                Contact Sales
+              </button>
+            </motion.div>
           </div>
 
-          {/* Enterprise */}
-          <div className="rounded-3xl border border-slate-900 bg-slate-950/60 p-8">
-            <div className="flex items-center gap-2 mb-4">
+          {/* Token Add-Ons Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="text-center mb-10">
+              <h3 className="text-3xl font-black text-white mb-3">Need More Tokens?</h3>
+              <p className="text-slate-400">Purchase additional tokens for training and inference</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 hover:border-slate-700 transition-all">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Wallet className="h-5 w-5 text-cyan-400" />
+                      <h4 className="text-2xl font-black text-white">500 Tokens</h4>
+                    </div>
+                    <p className="text-sm text-slate-500">Perfect for small projects</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-black text-white">$9.90</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    trackClick('button', 'buy-tokens-500');
+                    navigate('/wallet');
+                  }}
+                  className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 transition-all"
+                >
+                  Purchase Tokens
+                </button>
+              </div>
+
+              <div className="relative rounded-2xl border-2 border-indigo-500/50 bg-gradient-to-br from-indigo-500/10 to-slate-900/50 p-6 hover:border-indigo-500 transition-all">
+                <div className="absolute -top-3 right-6 bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-1 rounded-full">
+                  <span className="text-xs font-black text-white uppercase">Best Value</span>
+                </div>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Wallet className="h-5 w-5 text-indigo-400" />
+                      <h4 className="text-2xl font-black text-white">1,500 Tokens</h4>
+                    </div>
+                    <p className="text-sm text-slate-400">Save 33% per token</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-black bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">$19.90</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    trackClick('button', 'buy-tokens-1500');
+                    navigate('/wallet');
+                  }}
+                  className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-semibold py-3 transition-all"
+                >
+                  Purchase Tokens
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* FAQ or Trust Section */}
+          <div className="mt-20 text-center">
+            <div className="inline-flex items-center gap-3 bg-slate-900/50 border border-slate-800 rounded-full px-6 py-3">
               <Shield className="h-5 w-5 text-emerald-400" />
-              <h3 className="text-xl font-bold text-white">Enterprise</h3>
-            </div>
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-black text-white">Custom</span>
-            </div>
-            <p className="text-sm text-slate-400 mb-6">Custom infrastructure for industrial-scale deployment.</p>
-            
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Dedicated GPU Nodes</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>SLA Guarantees</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Unlimited Deployments</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-slate-200">
-                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Dedicated Support</span>
-              </li>
-            </ul>
-            
-            <button 
-              onClick={() => {
-                trackClick('button', 'pricing-enterprise');
-                navigate('/auth');
-              }}
-              className="w-full rounded-2xl bg-white text-black hover:bg-slate-200 px-5 py-3 text-sm font-bold transition"
-            >
-              Contact Sales
-            </button>
-          </div>
-        </div>
-
-        {/* Token Packs Add-on Section */}
-        <div className="mx-auto max-w-3xl mt-16">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-black text-white mb-2">Need More Tokens?</h3>
-            <p className="text-slate-400">Purchase additional tokens for training and deployments</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="rounded-2xl border border-slate-900 bg-slate-950/60 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h4 className="text-xl font-bold text-white">500 Tokens</h4>
-                  <p className="text-xs text-slate-500">For small projects</p>
-                </div>
-                <div className="text-2xl font-black text-white">$9.90</div>
-              </div>
-              <button 
-                onClick={() => {
-                  trackClick('button', 'buy-tokens-500');
-                  navigate('/wallet');
-                }}
-                className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 text-sm font-semibold transition"
-              >
-                Purchase
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-slate-900 bg-slate-950/60 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h4 className="text-xl font-bold text-white">1,500 Tokens</h4>
-                  <p className="text-xs text-slate-500">Best value</p>
-                </div>
-                <div className="text-2xl font-black text-white">$19.90</div>
-              </div>
-              <button 
-                onClick={() => {
-                  trackClick('button', 'buy-tokens-1500');
-                  navigate('/wallet');
-                }}
-                className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-4 py-2 text-sm font-semibold transition"
-              >
-                Purchase
-              </button>
+              <span className="text-sm text-slate-300">7-day money-back guarantee • Cancel anytime</span>
             </div>
           </div>
         </div>

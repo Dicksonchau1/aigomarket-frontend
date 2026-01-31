@@ -85,7 +85,7 @@ export const RAILWAY_ENDPOINTS = {
    * @body { priceId: string, successUrl: string, cancelUrl: string }
    * @returns { sessionId: string, url: string }
    */
-  STRIPE_CHECKOUT: `${BASE_URL}/api/stripe/create-checkout-session`,
+  STRIPE_CHECKOUT: `${BASE_URL}/stripe/create-checkout-session`,
   
   /**
    * POST /api/stripe/webhook

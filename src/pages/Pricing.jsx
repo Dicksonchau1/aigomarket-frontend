@@ -114,9 +114,9 @@ export default function Pricing() {
       const PROMO_END_DATE = new Date('2026-02-14');
       const applyLaunchPromo = new Date() < PROMO_END_DATE;
 
-      console.log('🚀 Making request to:', `${API_URL}/api/checkout/create-checkout-session`);
+      console.log('🚀 Making request to:', `${API_URL}/stripe/create-checkout-session`);
 
-      const response = await fetch(`${API_URL}/api/checkout/create-checkout-session`, {
+      const response = await fetch(`${API_URL}/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
