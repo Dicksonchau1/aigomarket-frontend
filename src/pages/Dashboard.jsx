@@ -207,7 +207,7 @@ export default function Dashboard() {
       return;
     }
 
-    try:
+    try {
       toast.loading('Deleting project...', { id: 'delete' });
 
       const { error } = await supabase
@@ -268,7 +268,7 @@ export default function Dashboard() {
 
       <div className="ml-64 flex-1 p-8">
         {loading ? (
-          <div className="flex min-h-[400px] items-center justify-center">
+          <div className="flex min-h-screen items-center justify-center">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
           </div>
         ) : (
@@ -634,3 +634,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;
